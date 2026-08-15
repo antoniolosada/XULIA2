@@ -1,0 +1,8 @@
+opencv-python
+numpy
+mediapipe
+pynput
+pystray
+Pillow
+screeninfo
+pygrabber

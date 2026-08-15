@@ -1,0 +1,48 @@
+Resúmen: Se creará un sistema que sustituya el dispositivo del ratón para una persona tetrapléjica. el sistema empleará una webcam con la que debe seguir un pequeño cuadrado rojo que se encuentra colocado encima de unas gafas en el centro. El sistema de seguimiento debe consumir muy poca cpu.
+
+Genera un programa python con tkinter que al arrancar recupera información de todas las cámaras web, las numere y permita seleccionar una de ellas. 
+Debe contener un fichero de configuración. Si en el fichero hay una línea del tipo: camara=<n1 de cámara>, escogerá automáticamente el número de cámara indicado, y si no existe escogerá la primera cámara disponible.
+Una vez arrancado el sistema crea un icono en la zona de sistema con opciones "Prueba", "calibrar" y "salir".
+El fichero de configuración contiene información sobre la ventana de detección, que será un cuadro dentro de la imágen en el que se buscará el punto rojo. Si la ventana de detección no está configurada, el sistema arrancará con la ventana de calibración.
+
+La ventana de calibración monstrará la imagen que está recuperando la webcam y tendrá las siguientes opciones:
+1. Se pulsará la tecla C para definir la ventana de detección. Al inicio de la calibración, el sistema pedirá que se marque la ventana de detección, para lo que se debe pulsar con el ratón en la esquina superior izquierda y después en la esquina inferior derecha. Una vez definida la ventana de calibración, el sistema la mostrará con un cuadro amarillo. Para cada uno de los pasos mostrará un mensaje en la parte superior de la ventana.
+2. Se pulsará S para localizar el color del cuadro de seguimiento. Solicitará que se marque el centro del cuadrado rojo. El sistema recuperará el color rojo del punto marcado para localizar correctamente el cuadro de seguimiento. Guardará la tonalidad en el fichero de configuración. También guardará un porcentaje de variabilidad para detectar el color.
+3. Se pulsará P para probar la detección del cuadro rojo. El sistema pasará un filtro sobre la imagen para mostrar en color rojo el cuadro de seguimiento detectado y resto en color negro.
+4. Se pulsa G para grabar la información de la ventana de seguimiento y el tono del color rojo a detectar.
+
+
+En cuanto arranca debe mostrar un mensaje "Calibrando sistema, por favor mire el centro de la pantalla" durante 4 segundos. Debe mostrarse en pantalla el contador regresivo de los 4 segundos. Pasados 4 segundos debe localizar en la imagen de la cámara el punto rojo y verde para localizar el punto al que está mirando el usuario y lo establecerá como punto central colocando el ratón en el centro de la pantalla. Si no es capaz de localizar el punto rojo el verde o ambos dará un error indicando el color del punto que no fue capaz de localizar.
+Una vez establecido el punto central debe estar leyendo constantemente la imágen de la cámara (para lo que debe emplear la mínima capacidad de cpu posible), y debe seguir las posiciones de los puntos verde y rojo calculando la posición a la que está mirando el usuario y con ello posicionando el cursor en el lugar de la pantalla al que mira el usuario.
+
+El fichero de configuración tendrá la siguiente configuración adicional:
+
+ms_clic_derecho= <nº de milisegundos>
+ms_clic_izquierdo= <nº de milisegundos>
+ms_clic_central= <nº de milisegundos>
+ms_doble_clic_derecho= <nº de milisegundos>
+ms_pulsacion_derecho= <nº de milisegundos>
+ms_pulsacion_izquierdo= <nº de milisegundos>
+
+El sistema debe medir con precisión el tiempo transcurrido entre que el usuario cierra y abre cada ojo. Estas configuraciones definen la pulsación que hay que simular dependiente del tiempo transcurrido entre que se cerró el ojo y se abrió el ojo.
+Si el tiempo es menor a  ms_clic_derecho o  ms_clic_izquierdo se simula un clic del ratón con el botón indicado
+Si el tiempo es menor a  ms_doble_derecho se simula un clic del ratón con el botón indicado
+Si el tiempo es mayor a ms_pulsacion_derecho o ms_pulsacion_izquierdo, se simula la pulsación del ratón con el botón indicado. Se simula que el botón se ha liberado cuando se detecte que el ojo se ha abierto.
+
+La opción del menú del sistema "Calibración" inicia el proceso de calibración.
+
+Si se pulsa la tecla Control+Shift+Alt+d se desactiva el sistema y se pulsa Control+Shift+Alt+A se activa el sistema. En ambos casos de muestra un globo en la zona de sistema con información de la desactivación y la activación.
+
+En el fichero de configuración debe haber una entrada del tipo:
+
+multimonitor=<S/N>
+
+Si el S el sistema debe poder trabajar con múltiples monitores, si es N solo trabajará con el monitor principal.
+
+Cuando detecte que se cierra el ojo derecho, el cursor del ratón pasa a ser de color rojo y cuando detecte que se cierra el ojo izquierdo pasa a ser de color verde. Cuando detecte que cierran los dos ojos pasa a ser de color azul. En cuanto se abre el ojo correspondiente o ambos pasa a ser de color estándar.
+
+La opción del menú "Prueba" muestra una pantalla con la imagen de la cámara web superponiendo un cuadradado rojo encima del punto rojo y un cuadrado verde encima del punto verde.
+También mostrará en la zona superior dos círculos, uno rojo y otro verde que corresponderá a la derección de los ojos derecho e izquierdo. Si un ojo está cerrado muestra un circulo sólido y si está abierto muestra una circunferencia.
+
+El sistema se llama ARGOS que es el acrónimo de Asistencia del Ratón mediante Guiado Óptico Síncrono.
+

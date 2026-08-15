@@ -1,0 +1,169 @@
+Controles enumerados por Xulia2
+Cada línea incluye backend, tipo/clase, nombre y rectángulo.
+UIA	tipo=Window	nombre='(47) La IA se vuelve INFINITA: Acaban de hacerla GRATIS e ILIMITADA \U0001faea - YouTube y 2 páginas más - Personal: Microsoft\u200b Edge'	rect=(-8,-8,1928,1088)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='(47) La IA se vuelve INFINITA: Acaban de hacerla GRATIS e ILIMITADA \U0001faea - YouTube - Microsoft Edge'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=StatusBar	nombre='Sugerencia disponible'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Minimizar'
+UIA	tipo=Button	nombre='Minimizar'	rect=(1782,0,1828,40)
+UIA_CONTROL	tipo=Button	nombre='Restaurar'
+UIA	tipo=Button	nombre='Restaurar'	rect=(1828,0,1874,40)
+UIA_CONTROL	tipo=Button	nombre='Cerrar'
+UIA	tipo=Button	nombre='Cerrar'	rect=(1874,0,1920,40)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Tab	nombre='Barra de pestañas'
+UIA_CONTROL	tipo=ToolBar	nombre='Barra de la aplicación'
+UIA_CONTROL	tipo=ToolBar	nombre='Barra de favoritos'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Nueva pestaña'
+UIA	tipo=Button	nombre='Nueva pestaña'	rect=(732,0,764,41)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Atrás'
+UIA	tipo=Button	nombre='Atrás'	rect=(0,44,36,76)
+UIA_CONTROL	tipo=Button	nombre='Actualizar'
+UIA	tipo=Button	nombre='Actualizar'	rect=(40,44,72,76)
+UIA_CONTROL	tipo=Group	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Controle la música, los vídeos y mucho más'
+UIA	tipo=Button	nombre='Controle la música, los vídeos y mucho más'	rect=(1677,44,1709,76)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Perfil de Personal'
+UIA	tipo=Button	nombre='Perfil de Personal'	rect=(1749,44,1781,76)
+UIA_CONTROL	tipo=Button	nombre='Configuración y más (Alt+F)'
+UIA	tipo=Button	nombre='Configuración y más (Alt+F)'	rect=(1785,44,1821,76)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=ToolBar	nombre='Grupos de pestañas guardadas'
+UIA_CONTROL	tipo=Separator	nombre='Separador'
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://redmine-proxectosdes.xunta.gal/proxectos-des/issues/880396'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://redmine-proxectosdes.xunta.gal/proxectos-des/issues/880396'	rect=(48,82,80,110)
+UIA_CONTROL	tipo=ListItem	nombre='M'
+UIA	tipo=ListItem	nombre='M'	rect=(82,82,133,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://fides.xunta.gal'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://fides.xunta.gal'	rect=(135,82,163,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://fafprsa.xunta.local/fafprsa/Login.do?inicio=true'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://fafprsa.xunta.local/fafprsa/Login.do?inicio=true'	rect=(165,82,197,110)
+UIA_CONTROL	tipo=ListItem	nombre='A'
+UIA	tipo=ListItem	nombre='A'	rect=(199,82,247,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://micollab-01.xunta.gal/ucs/micollab/'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://micollab-01.xunta.gal/ucs/micollab/'	rect=(249,82,281,110)
+UIA_CONTROL	tipo=ListItem	nombre='FAV'
+UIA	tipo=ListItem	nombre='FAV'	rect=(283,82,343,110)
+UIA_CONTROL	tipo=ListItem	nombre='X'
+UIA	tipo=ListItem	nombre='X'	rect=(345,82,393,110)
+UIA_CONTROL	tipo=ListItem	nombre='Yo'
+UIA	tipo=ListItem	nombre='Yo'	rect=(395,82,448,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://calendar.google.com/calendar/u/0/r'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://calendar.google.com/calendar/u/0/r'	rect=(450,82,482,110)
+UIA_CONTROL	tipo=ListItem	nombre='I'
+UIA	tipo=ListItem	nombre='I'	rect=(484,82,528,110)
+UIA_CONTROL	tipo=ListItem	nombre='A'
+UIA	tipo=ListItem	nombre='A'	rect=(530,82,578,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://correoweb.xunta.es/owa/#path=/mail'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://correoweb.xunta.es/owa/#path=/mail'	rect=(580,82,612,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://keep.google.com/u/0/'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://keep.google.com/u/0/'	rect=(614,82,646,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://calendar.google.com/calendar/u/0/r'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://calendar.google.com/calendar/u/0/r'	rect=(648,82,680,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://mail.google.com/mail/u/0/?pli=1#inbox'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://mail.google.com/mail/u/0/?pli=1#inbox'	rect=(682,82,714,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://www.youtube.com/?app=desktop&hl=es'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://www.youtube.com/?app=desktop&hl=es'	rect=(716,82,748,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://www.google.com/webhp?hl=es&ictx=0&sa=X&ved=0ahUKEwiJ9o-Ho6KSAxUGWkEAHUo3LgEQPAgI'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://www.google.com/webhp?hl=es&ictx=0&sa=X&ved=0ahUKEwiJ9o-Ho6KSAxUGWkEAHUo3LgEQPAgI'	rect=(750,82,782,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://drive.google.com/drive/u/0/home'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://drive.google.com/drive/u/0/home'	rect=(784,82,816,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://www.cursosdev.com/coupons/Spanish?page=1'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://www.cursosdev.com/coupons/Spanish?page=1'	rect=(818,82,850,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://www.udemy.com/mobile/ipad/'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://www.udemy.com/mobile/ipad/'	rect=(852,82,884,110)
+UIA_CONTROL	tipo=ListItem	nombre='Enlaces'
+UIA	tipo=ListItem	nombre='Enlaces'	rect=(886,82,965,110)
+UIA_CONTROL	tipo=ListItem	nombre='IA'
+UIA	tipo=ListItem	nombre='IA'	rect=(967,82,1018,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://messages.google.com/web/conversations'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://messages.google.com/web/conversations'	rect=(1020,82,1052,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para synology:5000'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para synology:5000'	rect=(1054,82,1086,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://o2online.es/test-de-velocidad/'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://o2online.es/test-de-velocidad/'	rect=(1088,82,1120,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://www.eltiempo.es/pontevedra.html'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://www.eltiempo.es/pontevedra.html'	rect=(1122,82,1154,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para localhost:7860'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para localhost:7860'	rect=(1156,82,1188,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://onenote.cloud.microsoft'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://onenote.cloud.microsoft'	rect=(1190,82,1222,110)
+UIA_CONTROL	tipo=ListItem	nombre='Marcador sin nombre para https://www.speedtest.net/es/result/19030284172'
+UIA	tipo=ListItem	nombre='Marcador sin nombre para https://www.speedtest.net/es/result/19030284172'	rect=(1224,82,1256,110)
+UIA_CONTROL	tipo=Button	nombre='Otros favoritos'
+UIA	tipo=Button	nombre='Otros favoritos'	rect=(1793,82,1912,110)
+UIA_CONTROL	tipo=Separator	nombre='Separador'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Tab	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Ver información del sitio'
+UIA	tipo=Button	nombre='Ver información del sitio'	rect=(80,48,104,72)
+UIA_CONTROL	tipo=Edit	nombre='https://www.youtube.com/watch?v=qEFBBTZ0e5A'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Save to Zotero (YouTube)\nTiene acceso a este sitio'
+UIA	tipo=Button	nombre='Save to Zotero (YouTube)\nTiene acceso a este sitio'	rect=(1456,44,1488,76)
+UIA_CONTROL	tipo=Button	nombre='Open in Chrome™ Browser\nTiene acceso a este sitio'
+UIA	tipo=Button	nombre='Open in Chrome™ Browser\nTiene acceso a este sitio'	rect=(1492,44,1524,76)
+UIA_CONTROL	tipo=Button	nombre='Open Floccus options\nTiene acceso a este sitio'
+UIA	tipo=Button	nombre='Open Floccus options\nTiene acceso a este sitio'	rect=(1528,44,1560,76)
+UIA_CONTROL	tipo=Button	nombre='Speak Subtitles for YouTube, Off\nTiene acceso a este sitio'
+UIA	tipo=Button	nombre='Speak Subtitles for YouTube, Off\nTiene acceso a este sitio'	rect=(1564,44,1596,76)
+UIA_CONTROL	tipo=Button	nombre='Hoxx VPN Proxy\nTiene acceso a este sitio'
+UIA	tipo=Button	nombre='Hoxx VPN Proxy\nTiene acceso a este sitio'	rect=(1600,44,1632,76)
+UIA_CONTROL	tipo=Button	nombre='Extensiones'
+UIA	tipo=Button	nombre='Extensiones'	rect=(1636,44,1668,76)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Favoritos'
+UIA	tipo=Button	nombre='Favoritos'	rect=(1713,44,1745,76)
+UIA_CONTROL	tipo=Button	nombre='Chat'
+UIA	tipo=Button	nombre='Chat'	rect=(1821,44,1892,76)
+UIA_CONTROL	tipo=Button	nombre='Menú de Copilot'
+UIA	tipo=Button	nombre='Menú de Copilot'	rect=(1892,44,1916,76)
+UIA_CONTROL	tipo=Button	nombre='Grupos de pestañas'
+UIA	tipo=Button	nombre='Grupos de pestañas'	rect=(6,82,34,110)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Edit	nombre='Control'
+UIA_CONTROL	tipo=TabItem	nombre='(47) YouTube: en suspensión - Uso de memoria - 339 MB'
+UIA	tipo=TabItem	nombre='(47) YouTube: en suspensión - Uso de memoria - 339 MB'	rect=(2,0,258,41)
+UIA_CONTROL	tipo=TabItem	nombre='(47) Un joven de 23 años demostró que multiplicábamos de más - YouTube: en suspensión - Uso de memoria - 230 MB'
+UIA	tipo=TabItem	nombre='(47) Un joven de 23 años demostró que multiplicábamos de más - YouTube: en suspensión - Uso de memoria - 230 MB'	rect=(241,0,497,41)
+UIA_CONTROL	tipo=TabItem	nombre='(47) La IA se vuelve INFINITA: Acaban de hacerla GRATIS e ILIMITADA \U0001faea - YouTube - Uso de memoria - 424 MB'
+UIA	tipo=TabItem	nombre='(47) La IA se vuelve INFINITA: Acaban de hacerla GRATIS e ILIMITADA \U0001faea - YouTube - Uso de memoria - 424 MB'	rect=(480,0,736,41)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Aplicación disponible. Instalar YouTube'
+UIA	tipo=Button	nombre='Aplicación disponible. Instalar YouTube'	rect=(1396,48,1420,72)
+UIA_CONTROL	tipo=Button	nombre='Agregar esta página a favoritos (Ctrl+D)'
+UIA	tipo=Button	nombre='Agregar esta página a favoritos (Ctrl+D)'	rect=(1424,48,1448,72)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Button	nombre='Cerrar pestaña'
+UIA	tipo=Button	nombre='Cerrar pestaña'	rect=(226,12,242,28)
+UIA_CONTROL	tipo=Button	nombre='Cerrar pestaña'
+UIA	tipo=Button	nombre='Cerrar pestaña'	rect=(465,12,481,28)
+UIA_CONTROL	tipo=Button	nombre='Cerrar pestaña'
+UIA	tipo=Button	nombre='Cerrar pestaña'	rect=(704,12,720,28)
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Text	nombre='Instalar GitHub'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Pane	nombre='Control'
+UIA_CONTROL	tipo=Document	nombre='(47) La IA se vuelve INFINITA: Acaban de hacerla GRATIS e ILIMITADA \U0001faea - YouTube'
+UIA_CONTROL	tipo=Group	nombre='Control'
+Win32	tipo=Window	nombre='(47) La IA se vuelve INFINITA: Acaban de hacerla GRATIS e ILIMITADA \U0001faea - YouTube y 2 páginas más - Personal: Microsoft\u200b Edge'	rect=(-8,-8,1928,1088)
+Win32_CONTROL	clase=Chrome_RenderWidgetHostHWND	nombre='Chrome Legacy Window'
+Win32_CONTROL	clase=Intermediate D3D Window	nombre='Intermediate D3D Window'
+
+Objetivos numerables: 61
