@@ -72,12 +72,17 @@ class ArgosApp:
 
         self.center_image_point = None
         self.calibrated = False
+        self.mouse_tracking_enabled = False
         self.detection_params = None
         self.calibration_requested = False
+        self.calibration_cancel_requested = False
+        self.reference_requested = False
         self.search_zone = None
         self.camera_frame_size = None
         self.tracking_model = None
         self.target_size = None
+        self.white_reference = None
+        self.black_reference = None
         self.hotkey_listener = None
 
         self.mp_face_mesh = mp_face_mesh_module.face_mesh if mp_face_mesh_module is not None else None
@@ -120,7 +125,9 @@ class ArgosApp:
         detection_defaults = {
             'white_s_max': '55', 'white_v_min': '150',
             'black_v_max': '85', 'min_area': '12',
-            'cross_ratio_min': '0.005', 'cross_ratio_max': '0.50'
+            'cross_ratio_min': '0.005', 'cross_ratio_max': '0.50',
+            'inner_ratio_min': '0.03', 'inner_ratio_max': '0.50',
+            'white_deviation_pct': '30', 'black_deviation_pct': '15'
         }
         for k, v in detection_defaults.items():
             if k not in self.cfg['detection']:
@@ -170,6 +177,18 @@ class ArgosApp:
 
         def on_press(key):
             hotkey.press(keyboard.Listener.canonical(key))
+            try:
+                key_char = key.char.lower()
+                if key_char == 'c':
+                    self.reference_requested = True
+                elif key_char == 'r':
+                    self.mouse_tracking_enabled = True
+                elif key_char == 'm':
+                    self.mouse_tracking_enabled = False
+                elif key_char == 's':
+                    self.calibration_cancel_requested = True
+            except AttributeError:
+                pass
 
         def on_release(key):
             hotkey.release(keyboard.Listener.canonical(key))
@@ -326,10 +345,17 @@ class ArgosApp:
             'black_v': min(100, int(section.get('black_v_max', '85'))),
             'min_area': int(section['min_area']),
             'cross_ratio': (float(section.get('cross_ratio_min', '0.005')),
-                            float(section.get('cross_ratio_max', '0.50')))
+                            float(section.get('cross_ratio_max', '0.50'))),
+            'inner_ratio': (float(section.get('inner_ratio_min', '0.03')),
+                            float(section.get('inner_ratio_max', '0.50'))),
+            'white_deviation_pct': float(section.get('white_deviation_pct', '30')),
+            'black_deviation_pct': float(section.get('black_deviation_pct', '15'))
         }
         if self.target_size:
             params['target_size'] = self.target_size
+        if self.white_reference is not None and self.black_reference is not None:
+            params['white_reference'] = self.white_reference
+            params['black_reference'] = self.black_reference
         return params
 
     def save_detection_values(self, params):
@@ -339,6 +365,9 @@ class ArgosApp:
         section['black_v_max'] = str(params['black_v'])
         section['min_area'] = str(params['min_area'])
         section['cross_ratio_min'], section['cross_ratio_max'] = map(str, params['cross_ratio'])
+        section['inner_ratio_min'], section['inner_ratio_max'] = map(str, params['inner_ratio'])
+        section['white_deviation_pct'] = str(params['white_deviation_pct'])
+        section['black_deviation_pct'] = str(params['black_deviation_pct'])
         with open(CONFIG_PATH, 'w', encoding='utf-8') as config_file:
             self.cfg.write(config_file)
 
@@ -394,7 +423,7 @@ class ArgosApp:
             preview = small.copy()
             if selection['start'] and selection['current']:
                 cv2.rectangle(preview, selection['start'], selection['current'], (0, 0, 255), 1)
-            cv2.putText(preview, 'Marque la forma blanca con cruz negra y suelte el raton', (8, 22),
+            cv2.putText(preview, 'Marque el circulo blanco con cuadrado negro y suelte el raton', (8, 22),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
             cv2.putText(preview, 'Se evaluaran intensidades de blanco y negro', (8, 46),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
@@ -438,8 +467,12 @@ class ArgosApp:
         params['white_s'] = white_s_max
         params['white_v'] = white_v_min
         params['black_v'] = black_v_max
+        params['white_reference'] = float(np.percentile(brightness, 90))
+        params['black_reference'] = float(np.percentile(brightness, 10))
         params['target_size'] = (sample.shape[1], sample.shape[0])
         self.target_size = params['target_size']
+        self.white_reference = params['white_reference']
+        self.black_reference = params['black_reference']
         return params
 
     def select_search_zone(self):
@@ -514,6 +547,36 @@ class ArgosApp:
         height = min(height, frame.shape[0] - y)
         return x, y, width, height
 
+    def target_screen_position(self, center, frame, monitor):
+        zone_x, zone_y, zone_width, zone_height = self.zone_for_frame(frame)
+        relative_x = (center[0] - zone_x) / max(1.0, zone_width - 1)
+        relative_y = (center[1] - zone_y) / max(1.0, zone_height - 1)
+        relative_x = float(np.clip(relative_x, 0.0, 1.0))
+        relative_y = float(np.clip(relative_y, 0.0, 1.0))
+        relative_x = 1.0 - relative_x
+        screen_x = monitor.x + int(relative_x * (monitor.width - 1))
+        screen_y = monitor.y + int(relative_y * (monitor.height - 1))
+        return screen_x, screen_y
+
+    def move_mouse_to_target(self, target, frame, monitor):
+        if not self.mouse_tracking_enabled or not self.enabled or not self.mouse or not monitor:
+            return
+        sx, sy = self.target_screen_position(target['center'], frame, monitor)
+        try:
+            self.mouse.position = (sx, sy)
+        except Exception:
+            pass
+
+    def set_tracking_reference(self, target, params):
+        reference_size = (target['bbox'][2], target['bbox'][3])
+        self.tracking_model = (target['center'], reference_size)
+        self.target_size = reference_size
+        self.detection_params = dict(params)
+        self.detection_params['target_size'] = reference_size
+        self.center_image_point = target['center']
+        self.calibrated = True
+        self.save_detection_values(self.detection_params)
+
     def detect_target_in_zone(self, frame, params, reference=None):
         x, y, width, height = self.zone_for_frame(frame)
         local_reference = reference
@@ -531,10 +594,20 @@ class ArgosApp:
 
     def masks_for_target(self, frame, params):
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        white = cv2.inRange(hsv, np.array([0, 0, params['white_v']]),
+        white_threshold = params['white_v']
+        black_threshold = params['black_v']
+        if 'white_reference' in params and 'black_reference' in params:
+            brightness_range = max(1.0, params['white_reference'] - params['black_reference'])
+            white_threshold = int(np.clip(
+                params['white_reference'] - brightness_range * params['white_deviation_pct'] / 100.0,
+                0, 255))
+            black_threshold = int(np.clip(
+                params['black_reference'] + brightness_range * params['black_deviation_pct'] / 100.0,
+                0, 255))
+        white = cv2.inRange(hsv, np.array([0, 0, white_threshold]),
                             np.array([180, params['white_s'], 255]))
         black = cv2.inRange(hsv, np.array([0, 0, 0]),
-                            np.array([180, 255, params['black_v']]))
+                            np.array([180, 255, black_threshold]))
         open_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         close_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
         white = cv2.morphologyEx(white, cv2.MORPH_CLOSE, close_kernel)
@@ -543,10 +616,14 @@ class ArgosApp:
 
     def detect_target(self, frame, params, reference=None):
         white_mask, black_mask = self.masks_for_target(frame, params)
-        white_contours, _ = cv2.findContours(white_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        grouping_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
+        grouped_white = cv2.dilate(white_mask, grouping_kernel)
+        white_contours, _ = cv2.findContours(grouped_white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         best = None
         for white_contour in white_contours:
-            white_area = cv2.contourArea(white_contour)
+            group_x, group_y, group_width, group_height = cv2.boundingRect(white_contour)
+            white_area = cv2.countNonZero(
+                white_mask[group_y:group_y + group_height, group_x:group_x + group_width])
             if white_area < params['min_area']:
                 continue
             rect = cv2.minAreaRect(white_contour)
@@ -571,25 +648,27 @@ class ArgosApp:
             ordered[3] = box[np.argmax(coordinate_difference)]
             transform = cv2.getPerspectiveTransform(ordered, destination)
             roi = cv2.warpPerspective(black_mask, transform, (64, 64), flags=cv2.INTER_NEAREST)
-            cross_area = cv2.countNonZero(roi)
-            ratio = cross_area / float(roi.size)
-            if not params['cross_ratio'][0] <= ratio <= params['cross_ratio'][1]:
+            white_roi = cv2.warpPerspective(white_mask, transform, (64, 64), flags=cv2.INTER_NEAREST)
+            perimeter = cv2.arcLength(white_contour, True)
+            circularity = (4.0 * np.pi * cv2.contourArea(white_contour) /
+                           max(1.0, perimeter * perimeter))
+            if circularity < 0.55:
                 continue
-            arm_width = 10
-            horizontal = roi[32 - arm_width:32 + arm_width, :]
-            vertical = roi[:, 32 - arm_width:32 + arm_width]
-            horizontal_ratio = cv2.countNonZero(horizontal) / max(1, horizontal.size)
-            vertical_ratio = cv2.countNonZero(vertical) / max(1, vertical.size)
-            horizontal_left = horizontal[:, :22]
-            horizontal_right = horizontal[:, 42:]
-            vertical_top = vertical[:22, :]
-            vertical_bottom = vertical[42:, :]
-            left_ratio = cv2.countNonZero(horizontal_left) / max(1, horizontal_left.size)
-            right_ratio = cv2.countNonZero(horizontal_right) / max(1, horizontal_right.size)
-            top_ratio = cv2.countNonZero(vertical_top) / max(1, vertical_top.size)
-            bottom_ratio = cv2.countNonZero(vertical_bottom) / max(1, vertical_bottom.size)
-            if (horizontal_ratio < 0.10 or vertical_ratio < 0.10 or
-                    min(left_ratio, right_ratio, top_ratio, bottom_ratio) < 0.05):
+
+            black_contours, _ = cv2.findContours(roi, cv2.RETR_EXTERNAL,
+                                                 cv2.CHAIN_APPROX_SIMPLE)
+            if not black_contours:
+                continue
+            inner_contour = max(black_contours, key=cv2.contourArea)
+            inner_area = cv2.contourArea(inner_contour)
+            inner_x, inner_y, inner_width, inner_height = cv2.boundingRect(inner_contour)
+            inner_ratio = inner_area / float(roi.size)
+            inner_fill = inner_area / max(1.0, inner_width * inner_height)
+            inner_aspect = inner_width / max(1.0, inner_height)
+            inner_center = (inner_x + inner_width / 2.0, inner_y + inner_height / 2.0)
+            if (not params['inner_ratio'][0] <= inner_ratio <= params['inner_ratio'][1] or
+                    inner_fill < 0.55 or not 0.65 <= inner_aspect <= 1.5 or
+                    not 16 <= inner_center[0] <= 48 or not 16 <= inner_center[1] <= 48):
                 continue
             x, y, width, height = cv2.boundingRect(white_contour)
             score = white_area * (1.0 - abs(rect_width - rect_height) / max(rect_width, rect_height))
@@ -654,12 +733,19 @@ class ArgosApp:
         stable_target = None
         stable_frames = 0
         target = None
+        last_candidate = None
         params = self.calibrate_detection_from_sample(sample)
+        self.reference_requested = False
+        self.calibration_cancel_requested = False
         window_name = 'ARGOS - calibracion (ESC cancela)'
         display_scale = 1.5
+        monitor = self.get_primary_monitor()
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(window_name, 1280, 720)
-        while self.running and time.time() - started < 30:
+        if monitor:
+            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        else:
+            cv2.resizeWindow(window_name, 1280, 720)
+        while self.running:
             ret, frame = self.cap.read()
             if not ret:
                 time.sleep(0.05)
@@ -668,6 +754,8 @@ class ArgosApp:
             self.camera_frame_size = (frame.shape[1], frame.shape[0])
             small = frame
             target, candidate_params = self.find_target_with_filters(small)
+            if target:
+                last_candidate = target
             if candidate_params:
                 params = candidate_params
             white_mask, black_mask = self.masks_for_target(small, params)
@@ -676,12 +764,16 @@ class ArgosApp:
             zone_mask[zone_y:zone_y + zone_height, zone_x:zone_x + zone_width] = 255
             white_mask = cv2.bitwise_and(white_mask, zone_mask)
             black_mask = cv2.bitwise_and(black_mask, zone_mask)
-            filtered = cv2.bitwise_and(small, small, mask=cv2.bitwise_or(white_mask, black_mask))
+            filtered = np.zeros_like(small)
+            filtered[white_mask > 0] = (0, 0, 255)
+            filtered[black_mask > 0] = (0, 255, 0)
             preview = small.copy()
             cv2.rectangle(preview, (zone_x, zone_y),
                           (zone_x + zone_width, zone_y + zone_height), (255, 255, 0), 1)
 
             possible_contours, _ = cv2.findContours(white_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            blue_candidate = None
+            blue_candidate_area = 0.0
             for contour in possible_contours:
                 if cv2.contourArea(contour) >= params['min_area']:
                     x, y, w, h = cv2.boundingRect(contour)
@@ -694,7 +786,14 @@ class ArgosApp:
                         similar_size = (0.45 <= w / max(1, target_size[0]) <= 1.8 and
                                         0.45 <= h / max(1, target_size[1]) <= 1.8)
                     if has_black and similar_size:
+                        contour_area = cv2.contourArea(contour)
+                        if contour_area > blue_candidate_area:
+                            blue_candidate = {'center': (x + w // 2, y + h // 2),
+                                              'bbox': (x, y, w, h)}
+                            blue_candidate_area = contour_area
                         cv2.rectangle(preview, (x, y), (x + w, y + h), (255, 0, 0), 1)
+            if blue_candidate:
+                last_candidate = target or blue_candidate
             if target:
                 x, y, w, h = target['bbox']
                 rx, ry, rw, rh = target['red_bbox']
@@ -708,53 +807,63 @@ class ArgosApp:
             else:
                 stable_frames = 0
                 stable_target = None
-            cv2.putText(preview, 'Buscando cuadrado blanco con cruz negra', (8, 20),
+            cv2.putText(preview, 'Buscando circulo blanco con cuadrado negro', (8, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
             status = 'ACEPTADA (amarillo)' if target else 'CANDIDATO (azul)'
             cv2.putText(preview, status, (8, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                         (0, 255, 255) if target else (255, 0, 0), 2, cv2.LINE_AA)
-            cv2.putText(preview, 'Filtros guardados + ajuste automatico', (8, 40),
+            cv2.putText(preview, 'Rojo: claros  Verde: oscuros  Desviacion: '
+                        f'{params["white_deviation_pct"]:.0f}%/{params["black_deviation_pct"]:.0f}%', (8, 40),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(preview, 'C: aceptar candidato  S: salir  R: mover  M: detener', (8, 80),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45,
+                        (0, 255, 0) if self.mouse_tracking_enabled else (0, 0, 255), 1, cv2.LINE_AA)
             canvas = np.hstack((preview, filtered))
-            cv2.imshow(window_name, cv2.resize(canvas, (0, 0), fx=display_scale, fy=display_scale,
-                                               interpolation=cv2.INTER_NEAREST))
+            if monitor:
+                display_canvas = cv2.resize(canvas, (monitor.width, monitor.height),
+                                            interpolation=cv2.INTER_NEAREST)
+            else:
+                display_canvas = cv2.resize(canvas, (0, 0), fx=display_scale, fy=display_scale,
+                                            interpolation=cv2.INTER_NEAREST)
+            coordinate_target = target or blue_candidate or last_candidate
+            if coordinate_target:
+                position_x = coordinate_target['center'][0] - zone_x
+                position_y = coordinate_target['center'][1] - zone_y
+                percent_x = 100.0 * position_x / max(1, zone_width - 1)
+                percent_y = 100.0 * position_y / max(1, zone_height - 1)
+                coordinate_label = 'Candidato zona' if target else 'Ultimo candidato'
+                coordinate_text = (f'{coordinate_label}: x={position_x} y={position_y} '
+                                   f'({percent_x:.1f}%, {percent_y:.1f}%)')
+            else:
+                coordinate_text = 'Candidato zona: --'
+            text_size, _ = cv2.getTextSize(coordinate_text, cv2.FONT_HERSHEY_SIMPLEX,
+                                           0.65, 2)
+            text_x = max(10, display_canvas.shape[1] - text_size[0] - 20)
+            cv2.putText(display_canvas, coordinate_text, (text_x, 35),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 255), 2, cv2.LINE_AA)
+            cv2.imshow(window_name, display_canvas)
             key = cv2.waitKey(1) & 0xFF
-            if key == 27:
-                break
-            if target and stable_frames >= 4:
-                self.detection_params = params
-                self.save_detection_values(params)
-                self.tracking_model = (target['center'], (target['bbox'][2], target['bbox'][3]))
-                scale_x = frame.shape[1] / small.shape[1]
-                scale_y = frame.shape[0] / small.shape[0]
-                self.center_image_point = (int(target['center'][0] * scale_x),
-                                           int(target['center'][1] * scale_y))
-                self.calibrated = True
-                hold_until = time.time() + 5.0
-                while self.running and time.time() < hold_until:
-                    hold_ret, hold_frame = self.cap.read()
-                    if not hold_ret:
-                        continue
-                    hold_small = hold_frame
-                    hold_target = self.detect_target_in_zone(hold_small, params) or target
-                    hold_preview = hold_small.copy()
-                    hx, hy, hw, hh = hold_target['bbox']
-                    cv2.rectangle(hold_preview, (hx, hy), (hx + hw, hy + hh), (0, 255, 255), 3)
-                    cv2.putText(hold_preview, 'Forma detectada', (8, 22),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2, cv2.LINE_AA)
-                    remaining = max(0, int(hold_until - time.time() + 0.99))
-                    cv2.putText(hold_preview, f'Continuando en {remaining}s', (8, 48),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-                    cv2.imshow(window_name, cv2.resize(hold_preview, (0, 0), fx=display_scale,
-                                                       fy=display_scale, interpolation=cv2.INTER_NEAREST))
-                    cv2.waitKey(1)
+            if key == ord('c'):
+                self.reference_requested = True
+            elif key == ord('s'):
+                self.calibration_cancel_requested = True
+            if key == ord('r'):
+                self.mouse_tracking_enabled = True
+            elif key == ord('m'):
+                self.mouse_tracking_enabled = False
+            movement_target = target or blue_candidate or last_candidate
+            if movement_target and monitor:
+                self.move_mouse_to_target(movement_target, small, monitor)
+            if self.reference_requested and last_candidate:
+                self.reference_requested = False
+                target = last_candidate
+                self.set_tracking_reference(target, params)
                 cv2.destroyWindow(window_name)
-                monitor = self.get_primary_monitor()
-                if self.mouse and monitor:
-                    self.mouse.position = (monitor.x + monitor.width // 2,
-                                           monitor.y + monitor.height // 2)
                 self.root.after(0, lambda: messagebox.showinfo('ARGOS', 'Forma localizada y filtros guardados.'))
                 return True
+            if self.calibration_cancel_requested:
+                self.calibration_cancel_requested = False
+                break
 
         cv2.destroyWindow(window_name)
         self.running = False
@@ -762,8 +871,8 @@ class ArgosApp:
             self.cap.release()
             self.cap = None
         self.calibrated = False
-        self.root.after(0, lambda: messagebox.showerror(
-            'ERROR', 'No se localizo un cuadrado blanco con una cruz negra dentro.'))
+        self.root.after(0, lambda: messagebox.showinfo(
+            'ARGOS', 'Calibracion cancelada sin guardar la forma.'))
         return False
 
     def capture_loop(self):
@@ -799,19 +908,13 @@ class ArgosApp:
                     self.tracking_model = (last_target['center'],
                                            (last_target['bbox'][2], last_target['bbox'][3]))
 
+            if self.reference_requested and last_target:
+                self.reference_requested = False
+                self.set_tracking_reference(last_target, self.detection_params)
+
             if self.calibrated and last_target:
-                dx = last_target['center'][0] - (self.center_image_point[0] // 2)
-                dy = last_target['center'][1] - (self.center_image_point[1] // 2)
                 monitor = self.get_primary_monitor()
-                if self.mouse and self.enabled and monitor:
-                    sx = monitor.x + monitor.width // 2 + int(dx * 4)
-                    sy = monitor.y + monitor.height // 2 + int(dy * 4)
-                    sx = max(monitor.x, min(sx, monitor.x + monitor.width - 1))
-                    sy = max(monitor.y, min(sy, monitor.y + monitor.height - 1))
-                    try:
-                        self.mouse.position = (sx, sy)
-                    except Exception:
-                        pass
+                self.move_mouse_to_target(last_target, small, monitor)
 
             # Eye blink detection using mediapipe if available
             if self.face_mesh is not None and frame_number % 3 == 0:
@@ -920,12 +1023,25 @@ class ArgosApp:
         win.title('Prueba')
         label = tk.Label(win)
         label.pack()
+        current_target = None
+        last_candidate = None
+        current_params = None
+
+        def set_reference_from_double_click(event):
+            target = current_target or last_candidate
+            if target is not None and current_params is not None:
+                self.set_tracking_reference(target, current_params)
 
         def update():
+            nonlocal current_target, last_candidate, current_params
             ret, frame = self.cap.read()
             if ret:
                 params = self.detection_params or self.detection_values()
                 target = self.detect_target(frame, params)
+                current_target = target
+                current_params = params
+                if target is not None:
+                    last_candidate = target
                 if target:
                     x, y, w, h = target['bbox']
                     rx, ry, rw, rh = target['red_bbox']
@@ -939,6 +1055,8 @@ class ArgosApp:
                 label.config(image=imgtk)
             if win.winfo_exists():
                 win.after(30, update)
+
+        label.bind('<Double-Button-1>', set_reference_from_double_click)
 
         # lazy-import ImageTk to avoid heavy import earlier
         from PIL import ImageTk, Image
