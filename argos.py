@@ -127,7 +127,7 @@ class ArgosApp:
             'black_v_max': '85', 'min_area': '12',
             'cross_ratio_min': '0.005', 'cross_ratio_max': '0.50',
             'inner_ratio_min': '0.03', 'inner_ratio_max': '0.50',
-            'white_deviation_pct': '30', 'black_deviation_pct': '15'
+            'white_deviation_pct': '45', 'black_deviation_pct': '15'
         }
         for k, v in detection_defaults.items():
             if k not in self.cfg['detection']:
@@ -153,8 +153,8 @@ class ArgosApp:
             return cam_i
         return self.cameras[0] if self.cameras else 0
 
-    def configure_800x600_resolution(self):
-        requested = (800, 600)
+    def configure_hd_ready_resolution(self):
+        requested = (1280, 720)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, requested[0])
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, requested[1])
         actual = (int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
@@ -254,7 +254,7 @@ class ArgosApp:
         if self.cap is None or not self.cap.isOpened():
             messagebox.showerror('ERROR', f'No se puede abrir la cámara {self.cam_index}')
             return
-        self.camera_resolution = self.configure_800x600_resolution()
+        self.camera_resolution = self.configure_hd_ready_resolution()
         if self.camera_resolution is None:
             actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -262,7 +262,7 @@ class ArgosApp:
             self.cap = None
             messagebox.showerror(
                 'ERROR',
-                f'La cámara no soporta 800x600. Resolución disponible: '
+                f'La cámara no soporta HD Ready (1280x720). Resolución disponible: '
                 f'{actual_width}x{actual_height}.')
             return
         if not self.cap or not self.cap.isOpened():
@@ -348,7 +348,7 @@ class ArgosApp:
                             float(section.get('cross_ratio_max', '0.50'))),
             'inner_ratio': (float(section.get('inner_ratio_min', '0.03')),
                             float(section.get('inner_ratio_max', '0.50'))),
-            'white_deviation_pct': float(section.get('white_deviation_pct', '30')),
+            'white_deviation_pct': float(section.get('white_deviation_pct', '45')),
             'black_deviation_pct': float(section.get('black_deviation_pct', '15'))
         }
         if self.target_size:
@@ -698,11 +698,11 @@ class ArgosApp:
             candidates.append(candidate)
         return candidates
 
-    def find_target_with_filters(self, frame):
+    def find_target_with_filters(self, frame, reference=None):
         best = None
         best_params = None
         for params in self.target_candidates():
-            target = self.detect_target_in_zone(frame, params)
+            target = self.detect_target_in_zone(frame, params, reference)
             if target and (best is None or target['score'] > best['score']):
                 best, best_params = target, params
         return best, best_params
@@ -753,7 +753,11 @@ class ArgosApp:
 
             self.camera_frame_size = (frame.shape[1], frame.shape[0])
             small = frame
-            target, candidate_params = self.find_target_with_filters(small)
+            previous_reference = None
+            if last_candidate:
+                previous_reference = (last_candidate['center'],
+                                      (last_candidate['bbox'][2], last_candidate['bbox'][3]))
+            target, candidate_params = self.find_target_with_filters(small, previous_reference)
             if target:
                 last_candidate = target
             if candidate_params:
@@ -778,14 +782,29 @@ class ArgosApp:
                 if cv2.contourArea(contour) >= params['min_area']:
                     x, y, w, h = cv2.boundingRect(contour)
                     black_inside = black_mask[y:y + h, x:x + w]
-                    black_pixels = cv2.countNonZero(black_inside)
-                    has_black = black_pixels >= max(3, int(w * h * 0.005))
+                    black_contours, _ = cv2.findContours(
+                        black_inside, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    inner_square = None
+                    for black_contour in black_contours:
+                        ix, iy, iw, ih = cv2.boundingRect(black_contour)
+                        inner_area = cv2.contourArea(black_contour)
+                        inner_fill = inner_area / max(1.0, iw * ih)
+                        inner_aspect = iw / max(1.0, ih)
+                        centered = (0.20 <= (ix + iw / 2.0) / max(1, w) <= 0.80 and
+                                    0.20 <= (iy + ih / 2.0) / max(1, h) <= 0.80)
+                        away_from_edge = ix > 0 and iy > 0 and ix + iw < w and iy + ih < h
+                        if (away_from_edge and inner_area >= params['min_area'] and
+                                inner_fill >= 0.55 and 0.65 <= inner_aspect <= 1.5 and
+                                params['inner_ratio'][0] <= inner_area / max(1, w * h) <= params['inner_ratio'][1] and
+                                centered):
+                            inner_square = black_contour
+                            break
                     target_size = params.get('target_size')
                     similar_size = True
                     if target_size:
                         similar_size = (0.45 <= w / max(1, target_size[0]) <= 1.8 and
                                         0.45 <= h / max(1, target_size[1]) <= 1.8)
-                    if has_black and similar_size:
+                    if inner_square is not None and similar_size:
                         contour_area = cv2.contourArea(contour)
                         if contour_area > blue_candidate_area:
                             blue_candidate = {'center': (x + w // 2, y + h // 2),
