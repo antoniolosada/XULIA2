@@ -194,9 +194,10 @@ class GridOverlay:
 
         text = "Rejilla 20x15 activada: di 'casilla N' o 'celda N' para mover y hacer clic"
         canvas.create_text(screen_width // 2, 30, text=text, fill="white", font=("Arial", 16, "bold"))
-        root.deiconify()
-        root.lift()
-        root.update_idletasks()
+        # La ventana es self.root; sin 'self.' lanzaba NameError y la rejilla no aparecía.
+        self.root.deiconify()
+        self.root.lift()
+        self.root.update_idletasks()
 
         # If `hide()` was called while the overlay thread was still initializing
         # (i.e. before entering mainloop), abort showing the window.
