@@ -1,0 +1,276 @@
+# Patrones de comandos de XULIA2 en portugués de Brasil (pt-BR)
+# Mismo formato y mismas claves que patterns.txt (las claves internas siguen en español).
+# Se usa cuando el idioma es pt-BR (--idioma, %APPDATA%\Xulia2\config.ini o idioma de Windows).
+# El motor de reconocimiento (recognition_engine) se sigue leyendo de patterns.txt.
+# Sin equivalente en portugués: abrirexclamacion y abririnterrogacion ('¡' y '¿').
+# Formato: clave=expresion_regular, en orden: gana la primera que coincide.
+
+dictation_off=\b(sair(?: do| de)?(?: modo(?: de)?)? ditado|terminar(?: o)? ditado|fim(?: do| de)? ditado|parar(?: o)? ditado)\b
+dictation_on=\b(modo(?: de)? ditado)\b
+grid_show=\b(mostrar grade|abrir grade|mostrar grelha)\b
+grid_hide=\b(ocultar grade|fechar grade|ocultar grelha)\b
+buttons_show=(?:\b(?:mostrar bot[oõ]es|exibir bot[oõ]es|buttons show|show buttons)\b|^\s*bot[oõ]es\s*$)
+hide_help=\b(ocultar ajuda|fechar ajuda|ocultar a ajuda|fechar a ajuda)\b
+help=\b(ajuda|comandos|lista de comandos|mostrar ajuda)\b
+correct_last=\b(corrigir( a)? última frase|apagar( a)? última frase|excluir( a)? última frase)\b
+correct_word=\bcorrigir\s+palavra\s+(\d{1,2}|zero|um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezasseis|dezessete|dezassete|dezoito|dezenove|dezanove|vinte(?:\s+e\s+(?:um|dois|três|tres|quatro|cinco|seis|sete|oito|nove))?|trinta)\b
+click_button=\b(bot[aã]o|bot[oõ]es|clicar)\b
+ribbon=\b(guia|faixa de op[cç][oõ]es|ribbon)\b
+cell_click=\b(?:c[eé]lula|casilla)\s*(?:n[úu]mero\s*)?(\d{1,3})\b
+mouse_up=\b(mouse\s+(?:para\s+)?(?:cima|acima))\b
+mouse_down=\b(mouse\s+(?:para\s+)?(?:baixo|abaixo))\b
+mouse_left=\b(mouse\s+(?:para\s+a\s+)?esquerda)\b
+mouse_right=\b(mouse\s+(?:para\s+a\s+)?direita)\b
+mouse_stop=\b(mouse\s+parado|parar\s+mouse|mouse\s+parar)\b
+mouse_show=\b(mouse\s+mostrar|mostrar\s+(?:o\s+)?mouse|mostrar\s+cursor)\b
+mouse_hide=\b(mouse\s+ocultar|ocultar\s+(?:o\s+)?mouse|ocultar\s+cursor)\b
+por_repeticiones=\bpor\s+(?:um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,2}|10)\b
+button=\b(?:bot[aã]o|bot[oõ]es|button)\s+(.+)
+menu=\b(?:op[cç][aã]o menu)\s+(.+)
+spell_prefix=tecla|teclado
+command_prefix=comando|instrução|instrucao
+enter=\b(enter|intro|entrar)\b
+tab=\b(tabulador|tab)\b
+escape=\b(escape|esc)\b
+borrarpalabra=\bapagar\s+palavra(?!\s+(?:anterior|seguinte|pr[óo]xima))\b
+borraranteriorpalabra=\b(apagar\s+palavra\s+anterior|apagar\s+anterior\s+palavra)\b
+borrarsiguientepalabra=\b(apagar\s+palavra\s+seguinte|apagar\s+pr[óo]xima\s+palavra)\b
+borrarlinea=\bapagar\s+linha\b
+backspace=\b(?:retrocesso|backspace|excluir|apagar)\b
+delete=\b(suprimir|delete)\b
+home=\b(in[ií]cio|home)\b
+end=\b(final|end)\b
+page_next=\b(p[áa]gina seguinte|pr[óo]xima p[áa]gina|avan[cç]ar p[áa]gina)\b
+page_prev=\b(p[áa]gina anterior|retroceder p[áa]gina|voltar p[áa]gina)\b
+first_page=\b(primeira\s+p[áa]gina)\b
+last_page=\b([úu]ltima\s+p[áa]gina)\b
+next_tab=\b(aba\s+seguinte|pr[óo]xima\s+aba)\b
+prev_tab=\b(aba\s+anterior)\b
+solapa_numero=\baba\s*(\d{1,2}|zero|um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezasseis|dezessete|dezassete|dezoito|dezenove|dezanove|vinte(?:\s+e\s+(?:um|dois|três|tres|quatro|cinco|seis|sete|oito|nove))?|trinta)\b
+next_word=\b(palavra seguinte|pr[óo]xima palavra)\b
+prev_word=\b(palavra anterior)\b
+seleccionar_palabra=\bselec?cionar\s*palavra\b
+seleccionar_linea=\bselec?cionar\s*linha\b
+
+# Window and application management (added missing patterns)
+activar_ventana=\bativar janela(?:\s*n[úu]mero)?\s*(\d{1,2}|zero|um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezasseis|dezessete|dezassete|dezoito|dezenove|dezanove|vinte)\b
+abrir_programa_numero=\babrir\s+programa\s+(\d{1,2}|zero|um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezasseis|dezessete|dezassete|dezoito|dezenove|dezanove|vinte)\b
+siguiente_aplicacion=\b(aplica[çc][ãa]o seguinte|pr[óo]xima aplica[çc][ãa]o|app seguinte|pr[óo]ximo app|aplicativo seguinte|pr[óo]ximo aplicativo)\b
+anterior_aplicacion=\b(aplica[çc][ãa]o anterior|app anterior|aplicativo anterior)\b
+maximizar_ventana=\b(maximizar(?: janela)?|tela cheia)\b
+minimizar_ventana=\b(minimizar(?: a)?(?: janela)?)\b
+ventana_normal=\b(restaurar(?! (?:a )?[áa]rea)(?: janela)?|tamanho normal|janela normal)\b
+cerrar_ventana=\b(fechar(?: a| esta)? janela|janela fechar)\b
+cerrar_aplicacion=\b(fechar(?: a)? aplica[çc][ãa]o|aplica[çc][ãa]o fechar)\b
+ventana_derecha=\b(janela(?: à| a)? direita|mover janela(?: para a)? direita)\b
+ventana_izquierda=\b(janela(?: à| a)? esquerda|mover janela(?: para a)? esquerda)\b
+
+# Quick app launches
+ejecutar_editor=\b(executar editor|executar word|abrir word|abrir editor|microsoft word)\b
+ejecutar_navegador=\b(executar navegador|abrir navegador|abrir navegador padr[ãa]o|navegador)\b
+ejecutar_calculadora=\b(executar calculadora|abrir calculadora|calculadora)\b
+panel_control=\b(painel de controle|painel de controlo)\b
+ejecutar_notas=\b(executar bloco de notas|abrir bloco de notas|abrir notepad|bloco de notas)\b
+monitor_tareas=\b(gerenciador de tarefas|gestor de tarefas|task manager|monitor de tarefas)\b
+ejecutar_skype=\b(executar skype|abrir skype)\b
+ejecutar_google_mail=\b(executar gmail|executar google mail|abrir gmail|abrir google mail)\b
+ejecutar_whatsapp=\b(executar whatsapp|abrir whatsapp)\b
+ejecutar_facebook=\b(executar facebook|abrir facebook)\b
+explorar_disco=\b(explorar disco|abrir explorador|explorar arquivos|abrir explorador de arquivos|gerenciador de arquivos)\b
+
+# Field navigation
+siguiente_campo=\b(campo\s*seguinte|pr[óo]ximo\s*campo)\b
+anterior_campo=\b(campo\s*anterior)\b
+
+# Clipboard commands: plain use system clipboard; optional slot (uno..diez or 1..10)
+copiar=\bcopiar(?:\s*sele[cç][ãa]o)?(?:\s+(?P<slot>\d+|um|dois|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez))?\b
+cortar=\bcortar(?:\s*sele[cç][ãa]o)?(?:\s+(?P<slot>\d+|um|dois|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez))?\b
+pegar=\b(?:pegar|colar)(?:\s*sele[cç][ãa]o)?(?:\s+(?P<slot>\d+|um|dois|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez))?\b
+
+# Ratón speed/positioning
+raton_uno=\bvelocidade\s+(?:um|1)\b
+raton_dos=\bvelocidade\s+(?:dois|2)\b
+raton_tres=\bvelocidade\s+(?:tr[eê]s|3)\b
+raton_cuatro=\bvelocidade\s+(?:quatro|4)\b
+raton_cinco=\bvelocidade\s+(?:cinco|5)\b
+raton_seis=\bvelocidade\s+(?:seis|6)\b
+raton_rapido=\b(mouse\s+r[áa]pido|mais\s+r[áa]pido)\b
+raton_despacio=\b(mouse\s+devagar|mouse\s+lento|mais\s+lento|mais\s+devagar)\b
+raton_diagonal_dos=\bmouse\s+diagonal\s+(?:dois|2)\b
+raton_diagonal_tres=\bmouse\s+diagonal\s+(?:tr[eê]s|3)\b
+raton_diagonal_cuatro=\bmouse\s+diagonal\s+(?:quatro|4)\b
+raton_diagonal=\bmouse\s+diagonal\b
+raton_centro=\b(mouse\s+centro|mover\s+centro)\b
+raton_cuadrante_dos=\bmouse\s+quadrante\s+(?:dois|2)\b
+raton_cuadrante_tres=\bmouse\s+quadrante\s+(?:tr[eê]s|3)\b
+raton_cuadrante_cuatro=\bmouse\s+quadrante\s+(?:quatro|4)\b
+raton_pulsar_doble=\b(mouse\s+pressionar\s+duplo|duplo\s+cli(?:que|ck|c)|clique\s+duplo)\b
+raton_pulsar_derecho=\b(mouse\s+pressionar\s+(direito|bot[aã]o\s+direito)|clique\s+direito)\b
+raton_pulsar_izquierdo=\b(mouse\s+pressionar\s+(esquerdo|bot[aã]o\s+esquerdo)|clique\s+esquerdo)\b
+raton_pulsar_centro=\bmouse\s+pressionar\s+centro\b
+raton_mantener=\bmouse\s+manter\b
+raton_parar=\bmouse\s+parar\b
+raton_cuadrante=\bmouse\s+quadrante\s+(?:um|1)\b
+raton_levantar=\bmouse\s+levantar\b
+mouse_click=\b(mouse\s+cli(?:que|ck|c)|mouse\s+clicar|mouse\s+pressionar)\b
+
+# Start menu and desktop show/restore
+menu_inicio=\b(windows|menu\s+iniciar)\b
+escritorio_mostrar=\b(mostrar\s+(?:a\s+)?[áa]rea\s+de\s+trabalho|mostrar\s+desktop)\b
+escritorio_restaurar=\b(restaurar\s+(?:a\s+)?[áa]rea\s+de\s+trabalho|restaurar\s+desktop)\b
+
+# Function keys (F1..F12)
+funcion_uno=\bfun[cç][aã]o\s*(?:um|1)\b
+funcion_dos=\bfun[cç][aã]o\s*(?:dois|2)\b
+funcion_tres=\bfun[cç][aã]o\s*(?:três|tres|3)\b
+funcion_cuatro=\bfun[cç][aã]o\s*(?:quatro|4)\b
+funcion_cinco=\bfun[cç][aã]o\s*(?:cinco|5)\b
+funcion_seis=\bfun[cç][aã]o\s*(?:seis|6)\b
+funcion_siete=\bfun[cç][aã]o\s*(?:sete|7)\b
+funcion_ocho=\bfun[cç][aã]o\s*(?:oito|8)\b
+funcion_nueve=\bfun[cç][aã]o\s*(?:nove|9)\b
+funcion_diez=\bfun[cç][aã]o\s*(?:dez|10)\b
+funcion_once=\bfun[cç][aã]o\s*(?:onze|11)\b
+funcion_doce=\bfun[cç][aã]o\s*(?:doze|12)\b
+
+# Modifier keys and caps
+fin_mayusculas=\b(parar mai[úu]sculas|fim\s*(?:das\s*)?mai[úu]sculas|desativar\s*mai[úu]sculas?)\b
+una_mayuscula=\b(uma\s*mai[úu]scula)\b
+mayusculas=\b(todas mai[úu]sculas|mai[úu]sculas|ativar\s*mai[úu]sculas?)\b
+pulsar_control=\b(?:pressionar|segurar)\s+(?:control|controle|ctrl)\b
+levantar_control=\b(?:soltar|liberar|levantar)\s+(?:control|controle|ctrl)\b
+levantar_alternativo=\b(liberar menu(?!\s+gr[aá]fico)|levantar\s*alternativo(?!\s+gr[aá]fico)|soltar\s*alt(?!\s*gr)|liberar\s*alt(?!\s*gr))\b
+alternativo_grafico=\b(pressionar menu gr[aá]fico|alternativo\s*gr[aá]fico|altgr|alt\s*gr)\b
+levantar_alternativo_grafico=\b(levantar menu gr[aá]fico|levantar\s*alternativo\s*gr[aá]fico|soltar\s*altgr|liberar\s*altgr)\b
+alternativo=\b(pressionar menu|alternativo|pressionar\s*alt|segurar\s*alt)\b
+
+# Selection hold/release (Shift)
+pulsar_seleccion=\b(pressionar sele[cç][ãa]o|come[cç]ar sele[cç][ãa]o|segurar\s*sele[cç][ãa]o|pressionar\s*shift|segurar\s*shift)\b
+levantar_seleccion=\b(levantar sele[cç][ãa]o|terminar sele[cç][ãa]o|soltar\s*sele[cç][ãa]o|liberar\s*sele[cç][ãa]o|soltar\s*shift|levantar\s*shift)\b
+
+activate=\b(ativar)\b
+deactivate=\b(desativar(?!\s+temporariamente))\b
+pause=\b(pausar|silenciar|temporariamente|desativar temporariamente)\b
+
+# Spelling mode activation
+salir_modo_deletrear=\b(sair do modo soletrar|sair do soletrar)\b
+modo_deletrear=\b(modo soletrar)\b
+
+# Spelling single-letter commands (no 'tecla' prefix) - map to letters
+alicante=\balicante\b
+bilbao=\bbilbao\b
+cadiz=\bc[aá]diz\b
+dinamarca=\bdinamarca\b
+espana=\bespa(?:[ñn]a|a)\b
+francia=\bfrancia\b
+gerona=\bgerona\b
+huelva=\bhuelva\b
+italia=\bitalia\b
+jaen=\bja[eé]n\b
+kilo=\bkilo\b
+llamar=\bllamar\b
+madrid=\bmadrid\b
+navarra=\bnavarra\b
+oviedo=\boviedo\b
+portugal=\bportugal\b
+queso=\bqueso\b
+roma=\broma\b
+sevilla=\bsevilla\b
+toledo=\btoledo\b
+unico=\b[uú]nico\b
+valencia=\bvalencia\b
+uvedoble=\buvedoble|uve\s+doble\b
+equis=\bequis\b
+yugoslavia=\byugoslavia\b
+zaragoza=\bzaragoza\b
+nono=\b(?:ñoño|nono)\b
+espacio=\bespacio\b
+
+# Punctuation and special characters (spoken names)
+comillassimples=\baspas\s+simples|ap[óo]strofo\b
+comillas=\b(aspas)\b
+mas=\b(sinal\s+(?:de\s+)?mais|somar)\b
+menos=\b(sinal\s+(?:de\s+)?menos|subtrair)\b
+asterisco=\basterisco\b
+dolar=\bd[oó]lar\b
+abrirparentesis=\babrir\s+par[eê]nteses?\b
+cerrarparentesis=\bfechar\s+par[eê]nteses?\b
+abrirllave=\babrir\s+chaves?\b
+cerrarllave=\bfechar\s+chaves?\b
+abrircorchete=\babrir\s+colchetes?\b
+cerrarcorchete=\bfechar\s+colchetes?\b
+subrayado=\b(sublinhado|underline|underscore)\b
+subrrayado=\bsublinhado\b
+arroba=\barroba\b
+porcentaje=\b(porcentagem|porcento)\b
+sostenido=\b(sustenido|cerquilha)\b
+euro=\beuro\b
+mayorque=\bsinal\s+(?:de\s+)?maior\b
+menorque=\bsinal\s+(?:de\s+)?menor\b
+iguala=\bsinal\s+(?:de\s+)?igual\b
+ampersan=\b(ampersand|e\s+comercial)\b
+cerrarexclamacion=\b(ponto de exclama[çc][ãa]o|exclama[çc][ãa]o)\b
+cerrarinterrogacion=\b(ponto de interroga[çc][ãa]o|interroga[çc][ãa]o)\b
+barrainvertida=\b(barra invertida|contra\s*barra)\b
+barravertical=\b(barra vertical)\b
+barra=\bbarra\b
+cerilla=\bcedilha\b
+primero=\b(sinal primeiro)\b
+primera=\b(sinal primeira)\b
+angulo=\b(sinal ângulo|ângulo)\b
+
+puntoycoma=\b(ponto\s+e\s+v[íi]rgula|semi\s*v[íi]rgula)\b
+dospuntos=\b(dois\s*pontos)\b
+puntoyaparte=\b(ponto\s+e\s+par[áa]grafo|ponto\s+par[áa]grafo)\b
+punto=\bponto\b
+coma=\bv[íi]rgula\b
+
+# Accent dead-keys
+acento=\bacento\b
+grave=\b(grave|crase)\b
+circunflejo=\bcircunflexo\b
+dieresis=\b(trema|di[ée]rese)\b
+
+# Letter-key voice commands: map city-like names to single key presses
+teclaalicante=\b(teclaalicante|tecla\s+alicante)\b
+teclabilbao=\b(teclabilbao|tecla\s+bilbao)\b
+teclacádiz=\b(teclac[áa]diz|tecla\s+cadiz|tecla\s+c[áa]diz)\b
+tecladinamarca=\b(tecladinamarca|tecla\s+dinamarca)\b
+teclaespaña=\b(teclaespa[ñn]a|tecla\s+espa[ñn]a|tecla\s+espana)\b
+teclafrancia=\b(teclafrancia|tecla\s+francia)\b
+teclagerona=\b(teclagerona|tecla\s+gerona)\b
+teclahuelva=\b(teclahuelva|tecla\s+huelva)\b
+teclaitalia=\b(teclaitalia|tecla\s+italia)\b
+teclajaén=\b(teclaja[eé]n|tecla\s+jaen|tecla\s+ja[eé]n)\b
+teclakilo=\b(teclakilo|tecla\s+kilo)\b
+teclallamar=\b(teclallamar|tecla\s+llamar)\b
+teclamadrid=\b(teclamadrid|tecla\s+madrid)\b
+teclanavarra=\b(teclanavarra|tecla\s+navarra)\b
+teclaoviedo=\b(teclaoviedo|tecla\s+oviedo)\b
+teclaportugal=\b(teclaportugal|tecla\s+portugal)\b
+teclaqueso=\b(teclaqueso|tecla\s+queso)\b
+teclaroma=\b(teclaroma|tecla\s+roma)\b
+teclasevilla=\b(teclasevilla|tecla\s+sevilla)\b
+teclatoledo=\b(teclatoledo|tecla\s+toledo)\b
+teclaúnico=\b(tecla[uú]nico|tecla\s+unico|tecla\s+único)\b
+teclavalencia=\b(teclavalencia|tecla\s+valencia)\b
+teclauvedoble=\b(teclauvedoble|tecla\s+uvedoble|tecla\s+uve\s+doble)\b
+teclaequis=\b(teclaequis|tecla\s+equis)\b
+teclayugoslavia=\b(teclayugoslavia|tecla\s+yugoslavia)\b
+teclazaragoza=\b(teclazaragoza|tecla\s+zaragoza)\b
+teclañoño=\b(tecla[ñn]o[ñn]o|tecla\s+ñoño|tecla\s+nono)\b
+teclaespacio=\b(tecla\s*espacio|teclaespacio|espaço)\b
+
+office_tab=\b(in[ií]cio|inserir|design|desenhar|layout|refer[êe]ncias|correspond[êe]ncias|revis[ãa]o|revisar|arquivo|dados|f[óo]rmulas?|exibir|exibi[çc][ãa]o|visualizar)\b
+
+cursor_up=\b(acima|cursor\s+acima|seta\s+(?:para\s+)?(?:cima|acima))\b
+cursor_down=\b(abaixo|cursor\s+abaixo|seta\s+(?:para\s+)?(?:baixo|abaixo))\b
+cursor_left=\b(esquerda|cursor\s+esquerda|seta\s+(?:para\s+a\s+)?esquerda)\b
+cursor_right=\b(direita|cursor\s+direita|seta\s+(?:para\s+a\s+)?direita)\b
+
+tecla_numero=\btecla\s*(\d{1,2}|zero|um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezasseis|dezessete|dezassete|dezoito|dezenove|dezanove|vinte(?:\s+e\s+(?:um|dois|três|tres|quatro|cinco|seis|sete|oito|nove))?|trinta)\b
+
+open_app=\b(abrir|iniciar|executar|abrir programa|abrir aplica[çc][ãa]o)\b
+
+# Reemplazos para modo dictado: <regex> => <reemplazo>
+\bponto\b => .

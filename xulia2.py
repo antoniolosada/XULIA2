@@ -33,6 +33,60 @@ from collections import OrderedDict
 import webbrowser
 import tempfile
 
+# Números en portugués; se suman a las tablas de números de más abajo, que son del español.
+NUMEROS_PT = {
+    'zero': 0, 'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'três': 3, 'quatro': 4, 'cinco': 5,
+    'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10, 'onze': 11, 'doze': 12,
+    'treze': 13, 'catorze': 14, 'quatorze': 14, 'quinze': 15, 'dezesseis': 16,
+    'dezasseis': 16, 'dezessete': 17, 'dezassete': 17, 'dezoito': 18, 'dezenove': 19,
+    'dezanove': 19, 'vinte': 20, 'vinte e um': 21, 'vinte e dois': 22, 'vinte e três': 23,
+    'vinte e tres': 23, 'vinte e quatro': 24, 'vinte e cinco': 25, 'vinte e seis': 26,
+    'vinte e sete': 27, 'vinte e oito': 28, 'vinte e nove': 29, 'trinta': 30,
+}
+
+# Idiomas con un patterns.<código>.txt junto a patterns.txt (el español es el propio patterns.txt).
+SUPPORTED_LANGUAGES = {'es': 'es-ES', 'pt': 'pt-BR'}
+
+
+def _normalize_language(code):
+    """'pt', 'pt_BR', 'PT-br' -> 'pt-BR'; None si está vacío o no está soportado."""
+    prefix = (code or '').strip().replace('_', '-').split('-')[0].lower()
+    return SUPPORTED_LANGUAGES.get(prefix)
+
+
+def _windows_language():
+    """Idioma principal de la interfaz de Windows ('pt', 'es' o '')."""
+    try:
+        langid = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+    except Exception:
+        return ''
+    return {0x16: 'pt', 0x0A: 'es'}.get(langid & 0x3FF, '')
+
+
+def resolve_language(requested=None):
+    """Elige el idioma: argumento, luego %APPDATA%\\Xulia2\\config.ini, luego Windows y, por defecto, es-ES.
+
+    config.ini se lee del perfil del usuario (no de la carpeta del programa, que el instalador
+    reemplaza y puede ser de solo lectura): [general] idioma = pt-BR
+    """
+    user_value = ''
+    try:
+        import configparser
+        cfg = configparser.ConfigParser()
+        cfg.read(os.path.join(os.environ.get('APPDATA') or os.path.expanduser('~'), 'Xulia2', 'config.ini'),
+                 encoding='utf-8')
+        user_value = cfg.get('general', 'idioma', fallback='')
+    except Exception:
+        pass
+    if requested and not _normalize_language(requested):
+        print(f"Idioma no soportado: {requested}. Se usará el de la configuración o el de Windows.")
+    for candidate in (requested, user_value, _windows_language()):
+        language = _normalize_language(candidate)
+        if language:
+            return language
+    return 'es-ES'
+
+
 # Default patterns used when no external patterns file is present
 DEFAULT_PATTERNS = {
     "activate": r"\b(activar|ativar)\b",
@@ -403,7 +457,7 @@ class ButtonOverlay:
 
 
 class VoiceControlAssistant:
-    def __init__(self):
+    def __init__(self, idioma=None):
         self.recognizer = sr.Recognizer()
         self.toaster = ToastNotifier()
         self.grid = GridOverlay(rows=15, cols=20)
@@ -422,7 +476,7 @@ class VoiceControlAssistant:
         self.mouse_speed_steps = [4, 8, 12, 20, 36, 60]
         self.last_phrases = []
         self.silenced_until = 0
-        self.language = "es-ES"
+        self.language = resolve_language(idioma)
         # Prefer Vosk by default if you have local Vosk models under ./models
         # Change to 'sphinx' or 'google' if you prefer those engines.
         self.recognition_engine = "vosk"  # auto, vosk, google or sphinx
@@ -527,15 +581,26 @@ class VoiceControlAssistant:
             print("No se pudo obtener la lista de micrófonos:", exc)
         return None
 
+    def _language_patterns_path(self):
+        """patterns.<idioma>.txt junto a patterns.txt, o None para usar patterns.txt (español)."""
+        path = os.path.join(os.path.dirname(__file__), f"patterns.{self.language}.txt")
+        return path if os.path.exists(path) else None
+
     def _build_command_patterns(self):
         # Try to load patterns from a text configuration file first
         try:
-            config_path = os.path.join(os.path.dirname(__file__), "patterns.txt")
+            base_path = os.path.join(os.path.dirname(__file__), "patterns.txt")
+            lang_path = self._language_patterns_path()
+            config_path = lang_path or base_path
             # read raw config values to pick up non-regex settings like vosk_language
-            config_vals = self._read_config_values(config_path)
+            config_vals = self._read_config_values(base_path)
+            if lang_path:
+                # el archivo de idioma pisa los valores propios del idioma (prefijos, palabra literal);
+                # el idioma del reconocedor sale de la elección, no del archivo
+                config_vals.update(self._read_config_values(lang_path))
             if config_vals:
                 # allow config to override recognizer language for Vosk
-                vosk_lang = config_vals.get("vosk_language") or config_vals.get("language")
+                vosk_lang = None if lang_path else (config_vals.get("vosk_language") or config_vals.get("language"))
                 if vosk_lang:
                     # normalize simple codes like 'es' -> 'es-ES' if needed
                     v = vosk_lang.strip()
@@ -1084,6 +1149,7 @@ class VoiceControlAssistant:
             'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5,
             'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10,
         }
+        number_words.update(NUMEROS_PT)
         token = match.group(0) if match else normalized
         token = re.sub(r'^.*?\bpor\s+', '', token, flags=re.I).strip().lower()
         count = int(token) if token.isdigit() else number_words.get(token)
@@ -1810,6 +1876,7 @@ class VoiceControlAssistant:
             'veinticinco': 25, 'veintiseis': 26, 'veintiséis': 26,
             'veintisiete': 27, 'veintiocho': 28, 'veintinueve': 29, 'treinta': 30,
         }
+        numbers.update(NUMEROS_PT)
         normalized_token = (token or '').strip().lower()
         if normalized_token.isdigit():
             return int(normalized_token)
@@ -3088,6 +3155,7 @@ class VoiceControlAssistant:
             'dieciseis': 16, 'dieciséis': 16, 'diecisiete': 17, 'dieciocho': 18, 'diecinueve': 19,
             'veinte': 20
         }
+        word_map.update(NUMEROS_PT)
         if t.isdigit():
             try:
                 v = int(t)
@@ -3959,7 +4027,11 @@ class VoiceControlAssistant:
 
 
 def main():
-    assistant = VoiceControlAssistant()
+    import argparse
+    parser = argparse.ArgumentParser(description="XULIA2 - control por voz")
+    parser.add_argument("--idioma", help="es-ES o pt-BR; solo para pruebas (si no, config.ini del usuario o idioma de Windows)")
+    args = parser.parse_args()
+    assistant = VoiceControlAssistant(idioma=args.idioma)
     assistant.start()
 
 
