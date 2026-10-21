@@ -32,6 +32,7 @@ import traceback
 from collections import OrderedDict
 import webbrowser
 import tempfile
+from speech import Speaker, speech_enabled
 
 # Default patterns used when no external patterns file is present
 DEFAULT_PATTERNS = {
@@ -423,6 +424,10 @@ class VoiceControlAssistant:
         self.last_phrases = []
         self.silenced_until = 0
         self.language = "es-ES"
+        # Voz de respuesta: avisos hablados de los eventos importantes (ver speech.py). Apagable con
+        # [general] voz = no en %APPDATA%\Xulia2\config.ini o con XULIA2_VOZ=0.
+        self.speaker = Speaker(lambda: self.language, enabled=speech_enabled(),
+                               volume=int(os.environ.get('XULIA2_VOZ_VOLUMEN', '100')), log=print)
         # Prefer Vosk by default if you have local Vosk models under ./models
         # Change to 'sphinx' or 'google' if you prefer those engines.
         self.recognition_engine = "vosk"  # auto, vosk, google or sphinx
@@ -709,8 +714,8 @@ class VoiceControlAssistant:
             "grid_show": lambda m, t, n: (self.grid.show() or self.notify("Rejilla mostrada") or True),
             "grid_hide": lambda m, t, n: (self.grid.hide() or self.notify("Rejilla oculta") or True),
             "buttons_show": self._handle_buttons_show,
-            "dictation_off": lambda m, t, n: (setattr(self, 'dictation_mode', False) or self._update_tray_icon() or self.notify("Modo dictado desactivado") or True),
-            "dictation_on": lambda m, t, n: (setattr(self, 'dictation_mode', True) or self._update_tray_icon() or self.notify("Modo dictado activado") or True),
+            "dictation_off": lambda m, t, n: (setattr(self, 'dictation_mode', False) or self._update_tray_icon() or self.notify("Modo dictado desactivado") or self._say('dictation_off') or True),
+            "dictation_on": lambda m, t, n: (setattr(self, 'dictation_mode', True) or self._update_tray_icon() or self.notify("Modo dictado activado") or self._say('dictation_on') or True),
             "correct_last": lambda m, t, n: (self._delete_last_phrase() or True),
             "correct_word": self._select_previous_word,
             "cell_click": self._handle_cell_click,
@@ -1220,6 +1225,7 @@ class VoiceControlAssistant:
     def stop(self):
         self.running = False
         self.active = False
+        self.speaker.stop()
         self.grid.hide()
         self.button_mode = False
         self.button_targets = []
@@ -1231,10 +1237,18 @@ class VoiceControlAssistant:
                 pass
         sys.exit(0)
 
+    def _say(self, event):
+        """Habla un aviso (no bloquea). Un fallo de la voz nunca puede afectar a lo que se está haciendo."""
+        try:
+            self.speaker.say(event)
+        except Exception:
+            pass
+
     def activate(self):
         self.active = True
         self.silenced_until = 0
         self.notify("Asistente activado")
+        self._say('activated')
         try:
             self._update_tray_icon()
         except Exception:
@@ -1243,6 +1257,7 @@ class VoiceControlAssistant:
     def deactivate(self):
         self.active = False
         self.notify("Asistente desactivado")
+        self._say('deactivated')
         try:
             self._update_tray_icon()
         except Exception:
@@ -1252,6 +1267,7 @@ class VoiceControlAssistant:
         self.active = False
         self.silenced_until = time.time() + seconds
         self.notify(f"Asistente desactivado temporalmente {seconds}s")
+        self._say('paused')
         try:
             self._update_tray_icon()
         except Exception:
@@ -1277,6 +1293,7 @@ class VoiceControlAssistant:
         except Exception as exc:
             print("Error al abrir el micrófono:", exc)
             self.notify("Error de micrófono")
+            self._say('mic_error')
             return
 
         with mic as source:
@@ -1329,6 +1346,15 @@ class VoiceControlAssistant:
                     print("Error en listen:", exc)
                     traceback.print_exc()
                     continue
+
+                # lo que se captó mientras hablaba la voz de respuesta (o su cola) es la propia voz
+                try:
+                    captured_end = time.time()
+                    captured = len(audio.frame_data) / float(audio.sample_rate * audio.sample_width)
+                    if self.speaker.overlaps(captured_end - captured, captured_end):
+                        continue
+                except Exception:
+                    pass
 
                 engine_used, text = self._recognize_audio(audio)
                 if not text:
