@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Registros y diarios (pueden contener títulos de ventanas, direcciones y otros datos personales)
+*.log
+
+# Configuración local del usuario
+*.local.ini
