@@ -123,102 +123,163 @@ DEFAULT_PATTERNS = {
 
 
 class GridOverlay:
-    def __init__(self, rows=15, cols=20, alpha=0.28):
+    """Rejilla numerada (20x15) con ajuste fino 3x3 dentro de la casilla elegida.
+
+    Adaptada de la rejilla de la versión 1.5. Flujo: "casilla N" mueve el cursor al centro de la casilla y
+    la resalta con una subrejilla 1-9; "posición K" afina dentro de ella y cierra la rejilla; "cancelar" la
+    cierra. Si no se dice nada, se cierra sola (FINE_SECONDS tras elegir casilla, IDLE_SECONDS sin elegir):
+    quien usa XULIA2 solo por voz no puede cerrarla con un clic.
+
+    La ventana vive en el hilo de Tk de XULIA2 (por `_tk_queue`), no pide el foco y deja pasar el ratón.
+    """
+    FINE_SECONDS = 8
+    IDLE_SECONDS = 30
+    # sin foco, fuera de Alt+Tab y con el ratón "a través" (WS_EX_LAYERED | TRANSPARENT | TOOLWINDOW | NOACTIVATE)
+    _NO_FOCUS_STYLE = 0x00080000 | 0x00000020 | 0x00000080 | 0x08000000
+
+    def __init__(self, rows=15, cols=20, alpha=0.5):
         self.rows = rows
         self.cols = cols
         self.alpha = alpha
-        self.root = None
-        self.thread = None
         self.visible = False
+        self.selected = None          # casilla elegida (1..rows*cols) o None
+        self.on_auto_close = None     # se llama cuando la rejilla se cierra sola
+        self._queue = None
+        self._root_getter = None
+        self.window = None
+        self.canvas = None
+        self._timer = None
 
-    def show(self):
-        if self.visible:
-            return
+    def configure_tk(self, tk_queue, tk_root_getter):
+        self._queue = tk_queue
+        self._root_getter = tk_root_getter
+
+    # --- API (cualquier hilo) ---
+    def show(self, legend=""):
         self.visible = True
-        self.thread = threading.Thread(target=self._run_overlay, daemon=True)
-        self.thread.start()
+        self.selected = None
+        self._queue.put((self._show, (legend,), {}))
+        self._restart_timer(self.IDLE_SECONDS)
 
     def hide(self):
-        # Mark as not visible and attempt to close/destroy the Tk window if it exists.
-        # Use both quit() and destroy() with exception safety because hide() may be
-        # called before the overlay's Tk root has entered its mainloop.
         self.visible = False
-        if self.root:
-            try:
-                try:
-                    self.root.quit()
-                except Exception:
-                    pass
-                try:
-                    self.root.destroy()
-                except Exception:
-                    pass
-            finally:
-                self.root = None
+        self.selected = None
+        if self._timer is not None:
+            self._timer.cancel()
+            self._timer = None
+        if self._queue is not None:
+            self._queue.put((self._hide, (), {}))
 
-    def _run_overlay(self):
-        self.root = tk.Tk()
-        self.root.title("Rejilla de Xulia2")
-        self.root.attributes("-topmost", True)
-        self.root.attributes("-alpha", self.alpha)
-        self.root.overrideredirect(True)
-        self.root.configure(background="black")
+    def select(self, cell):
+        """Resalta la casilla y dibuja su subrejilla 1-9."""
+        self.selected = cell
+        self._queue.put((self._draw_selection, (cell,), {}))
+        self._restart_timer(self.FINE_SECONDS)
 
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
-
-        canvas = tk.Canvas(self.root, width=screen_width, height=screen_height, bg="black", highlightthickness=0)
-        canvas.pack(fill="both", expand=True)
-
-        for r in range(1, self.rows):
-            y = int(screen_height * r / self.rows)
-            canvas.create_line(0, y, screen_width, y, fill="white", width=2)
-        for c in range(1, self.cols):
-            x = int(screen_width * c / self.cols)
-            canvas.create_line(x, 0, x, screen_height, fill="white", width=2)
-
-        for r in range(self.rows):
-            for c in range(self.cols):
-                cell_number = r * self.cols + c + 1
-                cell_x = int(screen_width * c / self.cols) + 6
-                cell_y = int(screen_height * r / self.rows) + 4
-                canvas.create_text(
-                    cell_x,
-                    cell_y,
-                    text=str(cell_number),
-                    fill="white",
-                    font=("Arial", 11, "bold"),
-                    anchor="nw",
-                )
-
-        text = "Rejilla 20x15 activada: di 'casilla N' o 'celda N' para mover y hacer clic"
-        canvas.create_text(screen_width // 2, 30, text=text, fill="white", font=("Arial", 16, "bold"))
-        root.deiconify()
-        root.lift()
-        root.update_idletasks()
-
-        # If `hide()` was called while the overlay thread was still initializing
-        # (i.e. before entering mainloop), abort showing the window.
-        if not self.visible:
-            try:
-                self.root.destroy()
-            except Exception:
-                pass
-            self.visible = False
-            return
-
-        self.root.mainloop()
-        self.visible = False
+    def _cell_box(self, cell, size):
+        """(izquierda, arriba, derecha, abajo) de la casilla en una pantalla de size=(ancho, alto)."""
+        cell = max(1, min(cell, self.rows * self.cols))
+        row, col = (cell - 1) // self.cols, (cell - 1) % self.cols
+        width, height = size
+        return (int(width * col / self.cols), int(height * row / self.rows),
+                int(width * (col + 1) / self.cols), int(height * (row + 1) / self.rows))
 
     def cell_center(self, cell_number):
-        cell_number = max(1, min(cell_number, self.rows * self.cols))
-        row = (cell_number - 1) // self.cols
-        col = (cell_number - 1) % self.cols
-        screen_width, screen_height = pyautogui.size()
-        x = int((col + 0.5) * screen_width / self.cols)
-        y = int((row + 0.5) * screen_height / self.rows)
-        return x, y
+        left, top, right, bottom = self._cell_box(cell_number, pyautogui.size())
+        return (left + right) // 2, (top + bottom) // 2
+
+    def sub_center(self, cell_number, position):
+        """Centro de la posición 1-9 (1 2 3 arriba, 4 5 6 en medio, 7 8 9 abajo) dentro de la casilla."""
+        left, top, right, bottom = self._cell_box(cell_number, pyautogui.size())
+        position = max(1, min(position, 9))
+        sub_col, sub_row = (position - 1) % 3, (position - 1) // 3
+        width, height = (right - left) / 3, (bottom - top) / 3
+        return int(left + (sub_col + 0.5) * width), int(top + (sub_row + 0.5) * height)
+
+    def _restart_timer(self, seconds):
+        if self._timer is not None:
+            self._timer.cancel()
+        self._timer = threading.Timer(seconds, self._auto_close)
+        self._timer.daemon = True
+        self._timer.start()
+
+    def _auto_close(self):
+        self.hide()
+        if self.on_auto_close:
+            try:
+                self.on_auto_close()
+            except Exception:
+                pass
+
+    # --- lo que sigue corre en el hilo de Tk ---
+    def _show(self, legend):
+        root = self._root_getter() if self._root_getter else None
+        if root is None:
+            return
+        width, height = root.winfo_screenwidth(), root.winfo_screenheight()
+        if self.window is None:
+            win = tk.Toplevel(root)
+            win.withdraw()
+            win.title("Rejilla de Xulia2")
+            win.overrideredirect(True)
+            win.attributes("-topmost", True)
+            win.attributes("-alpha", self.alpha)
+            win.configure(background="black")
+            self.canvas = tk.Canvas(win, bg="black", highlightthickness=0)
+            self.canvas.pack(fill="both", expand=True)
+            self.window = win
+        self.window.geometry(f"{width}x{height}+0+0")
+        self.window.update_idletasks()
+        hwnd = ctypes.windll.user32.GetAncestor(self.window.winfo_id(), 2) or self.window.winfo_id()
+        user32 = ctypes.windll.user32
+        user32.GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
+        user32.SetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_long]
+        user32.SetWindowLongW(hwnd, -20, user32.GetWindowLongW(hwnd, -20) | self._NO_FOCUS_STYLE)
+        canvas = self.canvas
+        canvas.delete("all")
+        for r in range(1, self.rows):
+            y = int(height * r / self.rows)
+            canvas.create_line(0, y, width, y, fill="white", width=2)
+        for c in range(1, self.cols):
+            x = int(width * c / self.cols)
+            canvas.create_line(x, 0, x, height, fill="white", width=2)
+        for r in range(self.rows):
+            for c in range(self.cols):
+                canvas.create_text(int(width * c / self.cols) + 6, int(height * r / self.rows) + 4,
+                                   text=str(r * self.cols + c + 1), fill="white", font=("Arial", 11, "bold"), anchor="nw")
+        if legend:
+            box = canvas.create_text(width // 2, 30, text=legend, fill="white", font=("Arial", 16, "bold"))
+            x0, y0, x1, y1 = canvas.bbox(box)
+            back = canvas.create_rectangle(x0 - 14, y0 - 6, x1 + 14, y1 + 6, fill="black", outline="white")
+            canvas.tag_lower(back, box)
+        self.window.deiconify()
+        self.window.lift()
+
+    def _draw_selection(self, cell):
+        if self.window is None or self.canvas is None or not self.visible:
+            return
+        canvas = self.canvas
+        canvas.delete("sel")
+        width, height = self.window.winfo_width(), self.window.winfo_height()
+        left, top, right, bottom = self._cell_box(cell, (width, height))
+        canvas.create_rectangle(left, top, right, bottom, outline="yellow", width=4, fill="#202000", tags="sel")
+        for i in (1, 2):   # la subrejilla 3x3: dos líneas por eje
+            x = left + (right - left) * i / 3
+            y = top + (bottom - top) * i / 3
+            canvas.create_line(x, top, x, bottom, fill="yellow", width=1, tags="sel")
+            canvas.create_line(left, y, right, y, fill="yellow", width=1, tags="sel")
+        size = max(9, int(min(right - left, bottom - top) / 3 * 0.55))
+        for position in range(1, 10):
+            sub_col, sub_row = (position - 1) % 3, (position - 1) // 3
+            cx = left + (right - left) * (sub_col + 0.5) / 3
+            cy = top + (bottom - top) * (sub_row + 0.5) / 3
+            canvas.create_text(cx, cy, text=str(position), fill="yellow", font=("Arial", size, "bold"), tags="sel")
+
+    def _hide(self):
+        if self.window is not None:
+            self.window.withdraw()
+            if self.canvas is not None:
+                self.canvas.delete("all")
 
 
 class ButtonOverlay:
@@ -462,6 +523,8 @@ class VoiceControlAssistant:
         # Correction dialog GUI thread state
         self._tk_queue = Queue()
         self.button_overlay.configure_tk(self._tk_queue, lambda: self._tk_root)
+        self.grid.configure_tk(self._tk_queue, lambda: self._tk_root)
+        self.grid.on_auto_close = lambda: self.notify("Rejilla cerrada por inactividad", toast=False)
         self._tk_thread = None
         self._tk_root = None
         # Correction window state
@@ -706,8 +769,9 @@ class VoiceControlAssistant:
             "pause": lambda m, t, n: (self.pause_temporarily(30) or True),
             "help": lambda m, t, n: (self.show_help() or True),
             "hide_help": lambda m, t, n: (self.hide_help() or True),
-            "grid_show": lambda m, t, n: (self.grid.show() or self.notify("Rejilla mostrada") or True),
+            "grid_show": self._handle_grid_show,
             "grid_hide": lambda m, t, n: (self.grid.hide() or self.notify("Rejilla oculta") or True),
+            "grid_fine": self._handle_grid_fine,
             "buttons_show": self._handle_buttons_show,
             "dictation_off": lambda m, t, n: (setattr(self, 'dictation_mode', False) or self._update_tray_icon() or self.notify("Modo dictado desactivado") or True),
             "dictation_on": lambda m, t, n: (setattr(self, 'dictation_mode', True) or self._update_tray_icon() or self.notify("Modo dictado activado") or True),
@@ -1419,6 +1483,9 @@ class VoiceControlAssistant:
             except Exception:
                 pass
             return
+        # Con la rejilla abierta: "cancelar", un número (casilla o posición) o cualquier otro comando
+        if self.grid.visible and self._handle_grid_mode(text, stripped):
+            return
         # While numbered button mode is active, a spoken number selects a
         # target and must not be interpreted as another global command.
         if getattr(self, 'button_mode', False):
@@ -1856,17 +1923,85 @@ class VoiceControlAssistant:
                 except Exception:
                     pass
 
+    # --- Rejilla: casilla -> posición 1-9 dentro de ella (ver GridOverlay) ---
+    _GRID_CANCEL = re.compile(r"\b(cancelar|volver|voltar)\b", re.I)
+
+    def _grid_legend(self):
+        if (self.language or "").lower().startswith("pt"):
+            return ("Grade: diga «célula N» (1 a 300) para mover o cursor · «posição 1-9» ajusta dentro da célula · "
+                    "«cancelar» sai")
+        return ("Rejilla: di «casilla N» (1 a 300) para mover el cursor · «posición 1-9» afina dentro de la casilla · "
+                "«cancelar» sale")
+
+    def _handle_grid_show(self, match, text, normalized):
+        self.grid.show(self._grid_legend())
+        self.notify("Rejilla mostrada")
+        return True
+
     def _click_grid_cell(self, cell_number):
+        """Mueve el cursor al centro de la casilla y, con la rejilla abierta, la resalta con su subrejilla 1-9.
+        Solo MUEVE el cursor: el clic es otro comando."""
+        total = self.grid.rows * self.grid.cols
+        if not 1 <= cell_number <= total:
+            self.notify(f"No existe la casilla {cell_number} (1 a {total})")
+            return False
         self.mouse_direction = None
         x, y = self.grid.cell_center(cell_number)
-        # Move the pointer to the center of the requested grid cell
-        # but do NOT perform a mouse click (only position the cursor).
         try:
             pyautogui.moveTo(x, y, duration=0.2)
-            self.notify(f"Cursor en celda {cell_number}")
+            if self.grid.visible:
+                self.grid.select(cell_number)
+                self.notify(f"Cursor en la casilla {cell_number}: di «posición 1-9» para afinar", toast=False)
+            else:
+                self.notify(f"Cursor en la casilla {cell_number}", toast=False)
+            return True
         except Exception as e:
-            print(f"Error al situar cursor en celda {cell_number}: {e}")
+            print(f"Error al situar cursor en casilla {cell_number}: {e}")
             traceback.print_exc()
+            return False
+
+    def _handle_grid_fine(self, match, text, normalized):
+        """"posición 7": afina dentro de la casilla elegida y cierra la rejilla."""
+        try:
+            position = int(match.group(1))
+        except Exception:
+            return False
+        if not 1 <= position <= 9:
+            self.notify("La posición va de 1 a 9")
+            return True
+        cell = self.grid.selected
+        if not (self.grid.visible and cell):
+            self.notify("Primero di «casilla N»")
+            return True
+        x, y = self.grid.sub_center(cell, position)
+        try:
+            pyautogui.moveTo(x, y, duration=0.15)
+        finally:
+            self.grid.hide()
+        self.notify(f"Cursor en la posición {position} de la casilla {cell}", toast=False)
+        return True
+
+    def _handle_grid_mode(self, text, stripped):
+        """Con la rejilla abierta: "cancelar" la cierra; un número solo elige casilla (1-300) o, si ya hay una
+        elegida, posición (1-9). True si la frase quedó consumida; False para que siga su camino normal."""
+        if self._GRID_CANCEL.search(stripped):
+            self.grid.hide()
+            self.notify("Rejilla cerrada")
+            return True
+        match = re.fullmatch(r"\s*(?:n[úu]mero\s+)?(\d{1,3})\s*", stripped or "")
+        number = int(match.group(1)) if match else self._parse_spoken_number((stripped or "").strip())
+        if not number:
+            return False
+        cell = self.grid.selected
+        if cell and 1 <= number <= 9:
+            x, y = self.grid.sub_center(cell, number)
+            try:
+                pyautogui.moveTo(x, y, duration=0.15)
+            finally:
+                self.grid.hide()
+            self.notify(f"Cursor en la posición {number} de la casilla {cell}", toast=False)
+            return True
+        return self._click_grid_cell(number)
 
     def _set_mouse_speed(self, level: int):
         try:
