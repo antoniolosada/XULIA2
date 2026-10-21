@@ -17,7 +17,14 @@ from PIL import Image, ImageDraw
 import pyperclip
 from pywinauto import Desktop
 try:
-    from win10toast import ToastNotifier
+    from win10toast import ToastNotifier as _Win10Toast
+
+    class ToastNotifier(_Win10Toast):
+        # win10toast 0.9 devuelve None desde on_destroy; pywin32 reciente exige un entero
+        # en el procedimiento de ventana ("WPARAM is simple, so must be an int object").
+        def on_destroy(self, hwnd, msg, wparam, lparam):
+            _Win10Toast.on_destroy(self, hwnd, msg, wparam, lparam)
+            return 0
 except Exception:
     # If pkg_resources (setuptools) is missing or win10toast cannot be imported,
     # provide a minimal fallback that prints messages to console so the
