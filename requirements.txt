@@ -1,8 +1,31 @@
-opencv-python
-numpy
-mediapipe
-pynput
-pystray
-Pillow
-screeninfo
-pygrabber
+# Dependencias de XULIA2 (xulia2.py) y de ARGOS (argos.py), con las versiones probadas.
+# Python 3.12 en Windows. Instalación recomendada en un entorno virtual:
+#   py -3.12 -m venv .venv
+#   .venv\Scripts\python.exe -m pip install -r requirements.txt
+
+# --- XULIA2: control por voz ---
+SpeechRecognition==3.17.0
+PyAudio==0.2.14
+vosk==0.3.45
+PyAutoGUI==0.9.54
+pyperclip==1.11.0
+pystray==0.19.5
+Pillow==12.3.0
+pywinauto==0.6.9
+comtypes==1.4.17
+pywin32==312
+win10toast==0.9
+plyer==2.1.0
+# win10toast usa pkg_resources, que setuptools 81 ya no incluye
+setuptools<81
+
+# --- ARGOS: ratón con la cabeza ---
+# mediapipe 0.10.30 o posterior retira mp.solutions y ARGOS perdería el face_mesh en silencio
+mediapipe==0.10.21
+# OpenCV 5 exige numpy 2: se queda en 4.11 con numpy 1.26
+numpy==1.26.4
+# un solo OpenCV: opencv-python y opencv-contrib-python juntos pelean por el módulo cv2
+opencv-contrib-python==4.11.0.86
+pynput==1.8.2
+screeninfo==0.8.1
+pygrabber==0.2
