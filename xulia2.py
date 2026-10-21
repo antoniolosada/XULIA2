@@ -30,6 +30,7 @@ except Exception:
                 pass
 import traceback
 from collections import OrderedDict
+from status_panel import StatusPanel, mode_from_state, panel_enabled
 import webbrowser
 import tempfile
 
@@ -472,6 +473,12 @@ class VoiceControlAssistant:
         self._correction_active_index = 0
         self._correction_target = None
         self._start_tk_thread()
+        # Franja de estado: modo actual, último comando entendido y, según el modo, cómo actuar y salir.
+        self._panel_last = None
+        self.status_panel = None
+        if panel_enabled():
+            self.status_panel = StatusPanel(lambda: self._tk_root, self._panel_state)
+            self._tk_queue.put((self.status_panel.start, (), {}))
         self._create_tray_icon()
         # Try to load a local Vosk model (optional). Models are expected under ./models
         self.vosk_available = False
@@ -994,6 +1001,19 @@ class VoiceControlAssistant:
         draw.text((18, 18), "V", fill=(255, 255, 255, 255))
         return image
 
+    def _panel_state(self):
+        """(modo, idioma, último) para el panel de estado; se llama desde el hilo de Tk."""
+        mode = mode_from_state(
+            active=getattr(self, 'active', True),
+            paused=time.time() < getattr(self, 'silenced_until', 0),
+            grid=self.grid.visible,
+            buttons=getattr(self, 'button_mode', False),
+            dictation=getattr(self, 'dictation_mode', False),
+            spell=getattr(self, 'spell_mode', False),
+            accent=bool(getattr(self, 'pending_accent', None)),
+        )
+        return mode, self.language, self._panel_last
+
     def _update_tray_icon(self):
         if self.icon is not None:
             # If assistant is inactive show a neutral/gray icon
@@ -1481,6 +1501,7 @@ class VoiceControlAssistant:
                             except Exception:
                                 matched_text = ''
                             print(f"Comando reconocido (deletrear): key='{key}' matched='{matched_text}' text='{text}'")
+                            self._panel_last = (time.time(), matched_text)
                             handled = self._dispatch_command_handler(key, handler, match, stripped_spell, normalized_spell)
                             if handled:
                                 return
@@ -1489,6 +1510,7 @@ class VoiceControlAssistant:
                             traceback.print_exc()
                             return
                 # nothing matched in spell mode
+                self._panel_last = (time.time(), None)
                 self.notify('Comando no reconocido en modo deletrear')
                 return
             else:
@@ -1509,6 +1531,7 @@ class VoiceControlAssistant:
                             except Exception:
                                 matched_text = ''
                             print(f"Comando reconocido: key='{key}' matched='{matched_text}' text='{text}'")
+                            self._panel_last = (time.time(), matched_text)
                             # Pass the stripped text to handlers so they receive the command without the word 'comando'
                             handled = self._dispatch_command_handler(key, handler, match, stripped, normalized)
                             if handled:
@@ -3711,6 +3734,7 @@ class VoiceControlAssistant:
             pyautogui.doubleClick()
             self.notify("Doble clic realizado")
             return
+        self._panel_last = (time.time(), None)
         self.notify("Comando no reconocido")
 
     def show_help(self):
