@@ -32,6 +32,7 @@ import traceback
 from collections import OrderedDict
 import webbrowser
 import tempfile
+from numbered_buttons import NumberedButtons, spoken_number
 
 # Default patterns used when no external patterns file is present
 DEFAULT_PATTERNS = {
@@ -221,194 +222,11 @@ class GridOverlay:
         return x, y
 
 
-class ButtonOverlay:
-    """Show numbered labels over controls that can be clicked."""
-
-    def __init__(self):
-        self.root = None
-        self.thread = None
-        self.visible = False
-        self.targets = []
-        self._lock = threading.Lock()
-        self._tk_queue = None
-        self._tk_root_getter = None
-        self._generation = 0
-
-    def configure_tk(self, tk_queue, tk_root_getter):
-        self._tk_queue = tk_queue
-        self._tk_root_getter = tk_root_getter
-
-    def show(self, targets):
-        with self._lock:
-            self.targets = list(targets)
-            if self.visible:
-                return
-            self.visible = True
-            self._generation += 1
-            if self._tk_queue is not None:
-                self._tk_queue.put((self._create_overlay, (), {}))
-                return
-            generation = self._generation
-        self.thread = threading.Thread(
-            target=self._run_overlay,
-            args=(generation,),
-            daemon=True,
-        )
-        self.thread.start()
-
-    def hide(self):
-        with self._lock:
-            self.visible = False
-            self._generation += 1
-            root = self.root
-            if self._tk_queue is not None:
-                self._tk_queue.put((self._destroy_overlay, (), {}))
-                return
-        if root is not None:
-            try:
-                hwnd = root.winfo_id()
-                ctypes.windll.user32.PostMessageW(hwnd, 0x0010, 0, 0)
-            except Exception:
-                try:
-                    root.quit()
-                except Exception:
-                    pass
-
-    def _destroy_overlay(self):
-        if self.root is not None:
-            try:
-                self.root.destroy()
-            except tk.TclError:
-                pass
-            self.root = None
-
-    def _create_overlay(self):
-        if not self.visible:
-            return
-        parent = self._tk_root_getter() if self._tk_root_getter else None
-        if parent is None:
-            self.visible = False
-            return
-        try:
-            root = tk.Toplevel(parent)
-            self.root = root
-            root.title("Botones de Xulia2")
-            root.attributes("-topmost", True)
-            root.overrideredirect(True)
-            root.attributes("-alpha", 0.28)
-            root.configure(background="black")
-            width = root.winfo_screenwidth()
-            height = root.winfo_screenheight()
-            root.geometry(f"{width}x{height}+0+0")
-            canvas = tk.Canvas(
-                root, width=width, height=height, bg="black",
-                highlightthickness=0
-            )
-            canvas.pack(fill="both", expand=True)
-            for number, target in enumerate(self.targets, start=1):
-                left, top, right, bottom = target["rect"]
-                x = right + 4
-                if x > width - 18:
-                    x = left - 21
-                x = max(2, min(width - 18, x))
-                y = max(2, min(height - 18, (top + bottom) // 2 - 8))
-                canvas.create_rectangle(
-                    x, y, x + 16, y + 16, fill="#b00020", outline="white"
-                )
-                canvas.create_text(
-                    x + 8, y + 8, text=str(number), fill="white",
-                    font=("Arial", 8, "bold")
-                )
-            root.deiconify()
-            root.lift()
-            root.update_idletasks()
-            try:
-                hwnd = root.winfo_id()
-                user32 = ctypes.windll.user32
-                ex_style = user32.GetWindowLongW(hwnd, -20)
-                user32.SetWindowLongW(
-                    hwnd, -20, ex_style | 0x00000020 | 0x08000000
-                )
-            except Exception:
-                pass
-        except Exception as exc:
-            self.visible = False
-            print("Error creando la capa de botones:", exc)
-            traceback.print_exc()
-
-    def _run_overlay(self, generation):
-        try:
-            root = tk.Tk()
-            self.root = root
-            root.title("Botones de Xulia2")
-            root.attributes("-topmost", True)
-            root.overrideredirect(True)
-            root.configure(background="black")
-            # A translucent layer is more reliable than transparentcolor:
-            # the latter can make Canvas text invisible on some Windows setups.
-            root.attributes("-alpha", 0.28)
-
-            width = root.winfo_screenwidth()
-            height = root.winfo_screenheight()
-            root.geometry(f"{width}x{height}+0+0")
-            canvas = tk.Canvas(
-                root, width=width, height=height, bg="black",
-                highlightthickness=0
-            )
-            canvas.pack(fill="both", expand=True)
-
-            for number, target in enumerate(self.targets, start=1):
-                left, top, right, bottom = target["rect"]
-                x = right + 4
-                if x > width - 18:
-                    x = left - 21
-                x = max(2, min(width - 18, x))
-                y = max(2, min(height - 18, (top + bottom) // 2 - 8))
-                canvas.create_rectangle(
-                    x, y, x + 16, y + 16, fill="#b00020", outline="white"
-                )
-                canvas.create_text(
-                    x + 8, y + 8, text=str(number), fill="white",
-                    font=("Arial", 8, "bold")
-                )
-
-            # Make the overlay non-activating and click-through on Windows.
-            try:
-                hwnd = root.winfo_id()
-                user32 = ctypes.windll.user32
-                ex_style = user32.GetWindowLongW(hwnd, -20)
-                user32.SetWindowLongW(hwnd, -20, ex_style | 0x00000020 | 0x08000000)
-                user32.SetWindowPos(
-                    hwnd, -1, 0, 0, 0, 0,
-                    0x0001 | 0x0002 | 0x0010 | 0x0040
-                )
-            except Exception:
-                pass
-
-            if not self.visible:
-                root.destroy()
-                return
-            root.deiconify()
-            root.lift()
-            root.update_idletasks()
-            root.mainloop()
-        except Exception as exc:
-            print("Error mostrando botones:", exc)
-            traceback.print_exc()
-        finally:
-            with self._lock:
-                if generation == self._generation:
-                    self.root = None
-                    self.visible = False
-
-
 class VoiceControlAssistant:
     def __init__(self):
         self.recognizer = sr.Recognizer()
         self.toaster = ToastNotifier()
         self.grid = GridOverlay(rows=15, cols=20)
-        self.button_overlay = ButtonOverlay()
-        self.button_targets = []
         self.button_mode = False
         self.active = True
         self.dictation_mode = False
@@ -461,7 +279,9 @@ class VoiceControlAssistant:
         self.running = True
         # Correction dialog GUI thread state
         self._tk_queue = Queue()
-        self.button_overlay.configure_tk(self._tk_queue, lambda: self._tk_root)
+        # Modo botones numerados: la ventana de números vive en el hilo de Tk (por _tk_queue).
+        self.numbered_buttons = NumberedButtons(self._tk_queue, lambda: self._tk_root,
+                                                on_auto_hide=self._on_buttons_auto_hide, log=print)
         self._tk_thread = None
         self._tk_root = None
         # Correction window state
@@ -1222,8 +1042,7 @@ class VoiceControlAssistant:
         self.active = False
         self.grid.hide()
         self.button_mode = False
-        self.button_targets = []
-        self.button_overlay.hide()
+        self.numbered_buttons.hide()
         if self.icon:
             try:
                 self.icon.stop()
@@ -1419,16 +1238,10 @@ class VoiceControlAssistant:
             except Exception:
                 pass
             return
-        # While numbered button mode is active, a spoken number selects a
-        # target and must not be interpreted as another global command.
+        # Con el modo botones activo, un número hablado hace clic en ese elemento; "cancelar" sale; otro
+        # comando reconocido sale del modo y se ejecuta (la frase sigue su camino normal).
         if getattr(self, 'button_mode', False):
-            buttons_pattern = self.commands.get("buttons_show")
-            if buttons_pattern and buttons_pattern.search(stripped):
-                handler = self._command_handlers.get("buttons_show")
-                if handler:
-                    handler(None, stripped, normalized)
-                return
-            if self._handle_button_number(text):
+            if self._handle_buttons_mode(text, stripped):
                 return
         # If dictation mode is active, only allow certain commands while dictating.
         if getattr(self, 'dictation_mode', False):
@@ -2693,267 +2506,95 @@ class VoiceControlAssistant:
             traceback.print_exc()
             return True
 
-    # Handlers used by the ordered dispatch table
+    # --- Modo botones numerados (ver numbered_buttons.py) ---
+    # Adaptado del modo botones de la versión 1.5. Diferencias con el modo anterior de XULIA2:
+    #   - el número HACE CLIC (antes solo movía el ratón);
+    #   - el modo es CONTINUO: tras el clic se renumera, porque la pantalla acaba de cambiar;
+    #   - "cancelar" sale, y cualquier otro comando reconocido sale del modo y se ejecuta.
+    _BUTTONS_CANCEL = re.compile(r"\b(cancelar|volver|voltar)\b", re.I)
+
     def _handle_buttons_show(self, match, text, normalized):
+        """"mostrar botones": numera los elementos clicables de la ventana activa y entra en el modo."""
         try:
-            if self.button_mode:
-                self.button_mode = False
-                old_thread = self.button_overlay.thread
-                self.button_overlay.hide()
-                if old_thread is not None and old_thread is not threading.current_thread():
-                    old_thread.join(timeout=1.0)
-            log_path = os.path.join(
-                os.path.dirname(__file__), "button_controls.log"
-            )
-            try:
-                with open(log_path, "w", encoding="utf-8") as log_file:
-                    log_file.write(
-                        "Inicio de enumeración de controles\n"
-                        f"Comando: {text!r}\n"
-                    )
-            except Exception as log_exc:
-                print(f"No se pudo crear el log de controles: {log_exc}")
-            width, height = pyautogui.size()
-            fallback = [{"rect": (0, 0, int(width), int(height)), "name": "Pantalla"}]
-            target_hwnd = ctypes.windll.user32.GetForegroundWindow()
-            # Display immediately; UI Automation can be slow or blocked by
-            # some applications and must not prevent the overlay from opening.
-            self.button_targets = fallback
-            self.button_mode = True
-            self.button_overlay.show(fallback)
-            self.notify(
-                "Botones mostrados. Di el número para mover el ratón"
-            )
-            threading.Thread(
-                target=self._populate_button_targets,
-                args=(target_hwnd,),
-                daemon=True,
-            ).start()
+            count = self.numbered_buttons.show()
+            self.button_mode = count > 0
+            if count:
+                self.notify("Di el número para hacer clic (por ejemplo «doce» o «número doce»)  ·  los números vuelven para el siguiente  ·  «cancelar» sale")
+            else:
+                self.notify("No encontré botones: " + (self.numbered_buttons.reason or "sin motivo"))
             return True
         except Exception as exc:
-            print("Error al mostrar botones:", exc)
+            print("Error mostrando botones:", exc)
             traceback.print_exc()
-            self.notify("No se pudieron localizar los botones")
-            return True
+            self.button_mode = False
+            return False
 
-    def _populate_button_targets(self, target_hwnd):
-        try:
-            targets = self._find_clickable_targets(target_hwnd)
-            if not targets or not getattr(self, "button_mode", False):
-                return
-            self.button_targets = targets
-            # Recreate the independent overlay with the complete target list.
-            old_thread = self.button_overlay.thread
-            self.button_overlay.hide()
-            if old_thread is not None and old_thread is not threading.current_thread():
-                old_thread.join(timeout=1.0)
-            if getattr(self, "button_mode", False):
-                self.button_overlay.show(targets)
-            print(f"Botones localizados: {len(targets)} objetivos")
-        except Exception as exc:
-            print("Error enumerando botones:", exc)
-
-    def _find_clickable_targets(self, target_hwnd=None):
-        """Return controls from the window that was active when the command ran."""
-        desktop = Desktop(backend="uia")
-        clickable_types = {
-            "Button", "CheckBox", "RadioButton", "Hyperlink", "MenuItem",
-            "TabItem", "SplitButton", "ComboBox", "ListItem", "TreeItem",
-        }
-        candidates = []
-        log_entries = []
-        log_path = os.path.join(os.path.dirname(__file__), "button_controls.log")
-
-        def add_rectangle(control, name, backend, control_type=""):
-            try:
-                rect = control.rectangle()
-                left, top, right, bottom = (
-                    int(rect.left), int(rect.top), int(rect.right), int(rect.bottom)
-                )
-                log_entries.append(
-                    f"{backend}\ttipo={control_type}\tnombre={name!r}\t"
-                    f"rect=({left},{top},{right},{bottom})"
-                )
-                if right <= left or bottom <= top:
-                    return
-                if right - left < 4 or bottom - top < 4:
-                    return
-                candidates.append({
-                    "rect": (left, top, right, bottom),
-                    "name": name,
-                })
-            except Exception as exc:
-                log_entries.append(
-                    f"{backend}\ttipo={control_type}\tnombre={name!r}\t"
-                    f"ERROR={exc!r}"
-                )
-                return
-
-        if not target_hwnd:
-            target_hwnd = ctypes.windll.user32.GetForegroundWindow()
-        try:
-            windows = [desktop.window(handle=target_hwnd)] if target_hwnd else []
-        except Exception as exc:
-            print("No se pudo obtener la ventana activa:", exc)
-            log_entries.append(f"UIA_ACTIVE_WINDOW_ERROR={exc!r}")
-            windows = []
-
-        for window in windows:
-            try:
-                window_name = window.window_text() or "Ventana"
-                add_rectangle(window, window_name, "UIA", "Window")
-                pending = [(window, 0)]
-                visited = 0
-                while pending and visited < 1000:
-                    parent, depth = pending.pop(0)
-                    if depth >= 12:
-                        continue
-                    try:
-                        children = parent.children()
-                    except Exception:
-                        continue
-                    for control in children:
-                        visited += 1
-                        try:
-                            control_type = control.element_info.control_type
-                            control_name = control.window_text() or "Control"
-                            log_entries.append(
-                                f"UIA_CONTROL\ttipo={control_type}\t"
-                                f"nombre={control_name!r}"
-                            )
-                            if control_type in clickable_types:
-                                add_rectangle(
-                                    control, control_name, "UIA", control_type
-                                )
-                            if depth + 1 < 12 and visited < 1000:
-                                pending.append((control, depth + 1))
-                        except Exception:
-                            log_entries.append(
-                                "UIA_CONTROL\tERROR=metadata unavailable"
-                            )
-            except Exception:
-                continue
-
-        # Some classic Windows applications do not expose their controls
-        # through UIA. Win32 exposes their button/menu classes instead.
-        try:
-            win32_desktop = Desktop(backend="win32")
-            win32_classes = {
-                "Button", "ComboBox", "Edit", "ListBox", "ListView",
-                "SysListView32", "SysTabControl32", "ToolbarWindow32",
-                "ReBarWindow32", "TreeView", "#32768",
-            }
-            win32_windows = (
-                [win32_desktop.window(handle=target_hwnd)]
-                if target_hwnd else []
-            )
-            for window in win32_windows:
-                window_name = window.window_text() or "Ventana"
-                add_rectangle(window, window_name, "Win32", "Window")
-                pending = [(window, 0)]
-                visited = 0
-                while pending and visited < 1000:
-                    parent, depth = pending.pop(0)
-                    if depth >= 12:
-                        continue
-                    try:
-                        children = parent.children()
-                    except Exception:
-                        continue
-                    for control in children:
-                        visited += 1
-                        try:
-                            class_name = (control.class_name() or "").strip()
-                            control_name = control.window_text() or class_name
-                            log_entries.append(
-                                f"Win32_CONTROL\tclase={class_name}\t"
-                                f"nombre={control_name!r}"
-                            )
-                            if class_name in win32_classes:
-                                add_rectangle(
-                                    control, control_name, "Win32", class_name
-                                )
-                            if depth + 1 < 12 and visited < 1000:
-                                pending.append((control, depth + 1))
-                        except Exception:
-                            log_entries.append(
-                                "Win32_CONTROL\tERROR=metadata unavailable"
-                            )
-        except Exception as exc:
-            print("No se pudieron enumerar controles Win32:", exc)
-            log_entries.append(f"WIN32_WINDOWS_ERROR={exc!r}")
-
-        try:
-            with open(log_path, "w", encoding="utf-8") as log_file:
-                log_file.write(
-                    "Controles enumerados por Xulia2\n"
-                    "Cada línea incluye backend, tipo/clase, nombre y rectángulo.\n"
-                )
-                log_file.write("\n".join(log_entries))
-                log_file.write(f"\n\nObjetivos numerables: {len(candidates)}\n")
-            print(f"Registro de controles escrito en: {log_path}")
-        except Exception as exc:
-            print("No se pudo escribir el registro de controles:", exc)
-
-        # Some applications expose no UIA window tree. Always provide the
-        # foreground window as a usable target in that case.
-        if not candidates:
-            try:
-                hwnd = ctypes.windll.user32.GetForegroundWindow()
-                if hwnd:
-                    add_rectangle(
-                        desktop.window(handle=hwnd),
-                        "Ventana activa",
-                        "UIA",
-                        "Window",
-                    )
-            except Exception:
-                pass
-        if not candidates:
-            width, height = pyautogui.size()
-            candidates.append({
-                "rect": (0, 0, int(width), int(height)),
-                "name": "Pantalla",
-            })
-
-        # Nested UIA providers often expose the same clickable rectangle more
-        # than once. Keep one label per screen location.
-        unique = {}
-        for target in candidates:
-            unique.setdefault(target["rect"], target)
-        return sorted(
-            unique.values(),
-            key=lambda target: (target["rect"][1], target["rect"][0]),
-        )
-
-    def _handle_button_number(self, text):
-        normalized = (text or "").lower()
-        token_match = re.search(
-            r"\b(\d{1,3}|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|"
-            r"diez|once|doce|trece|catorce|quince|dieciseis|dieciséis|"
-            r"diecisiete|dieciocho|diecinueve|veinte|veintiuno|veintidós|"
-            r"veintidos|veintitrés|veintitres|veinticuatro|veinticinco|"
-            r"veintiseis|veintiséis|veintisiete|veintiocho|veintinueve|"
-            r"treinta)\b",
-            normalized,
-            re.I,
-        )
-        if not token_match:
-            self.notify("Di un número de botón")
-            return True
-        number = self._parse_spoken_number(token_match.group(1))
-        if not 1 <= number <= len(self.button_targets):
-            self.notify(f"No existe el botón {number}")
-            return True
-
-        target = self.button_targets[number - 1]
-        left, top, right, bottom = target["rect"]
+    def _buttons_exit(self):
         self.button_mode = False
-        self.button_targets = []
-        self.button_overlay.hide()
-        pyautogui.moveTo((left + right) // 2, (top + bottom) // 2, duration=0.12)
-        self.notify(f"Ratón colocado sobre el botón {number}")
+        self.numbered_buttons.hide()
+
+    def _on_buttons_auto_hide(self):
+        """La ventana de números se apagó sola (45 s): se sale del modo, o el usuario seguiría
+        diciendo números que no hacen nada."""
+        self.button_mode = False
+        self.notify("Los números se ocultaron por inactividad")
+
+    def _handle_buttons_mode(self, text, stripped):
+        """Procesa una frase con el modo botones activo.
+
+        True si la frase quedó consumida. False si el modo termina y la frase debe seguir su camino
+        normal como cualquier otro comando.
+        """
+        # decir "mostrar botones" otra vez renumera (la pantalla pudo cambiar)
+        # (incluye la palabra suelta "botones"/"botões", el gatillo de la 1.5: antes caía en el comando
+        # click_button y SACABA del modo)
+        show_pattern = self.commands.get("buttons_show")
+        if show_pattern and show_pattern.search(stripped):
+            self._handle_buttons_show(None, stripped, stripped.lower())
+            return True
+        if self._BUTTONS_CANCEL.search(stripped):
+            self._buttons_exit()
+            self.notify("Botones cerrados")
+            return True
+        # consultar la ayuda no cuesta el modo: quien la abre la necesita justo aquí
+        for key in ("help", "hide_help"):
+            pattern, handler = self.commands.get(key), self._command_handlers.get(key)
+            if pattern and handler and pattern.search(stripped):
+                handler(None, stripped, stripped.lower())
+                return True
+        number = spoken_number(stripped)
+        if number is None:
+            # con texto libre un ruido mal oído no puede apagar los números: solo un comando
+            # reconocido sale del modo
+            key = self._get_recognized_command(text)
+            if key and self._command_handlers.get(key):
+                self._buttons_exit()
+                return False
+            self.notify("Di un número o «cancelar»", toast=False)
+            return True
+        if self.numbered_buttons.click(number):
+            self._buttons_renumber()
+        else:
+            self.notify(self.numbered_buttons.reason or f"No pude hacer clic en {number}")
         return True
+
+    def _buttons_renumber(self):
+        """Tras un clic la pantalla cambió: se vuelve a numerar y se sigue esperando el siguiente.
+
+        Una aplicación web puede tardar en reconstruir su árbol de accesibilidad (WhatsApp, Chrome):
+        por eso hasta 3 intentos (0,4 s, luego 0,6 s) antes de rendirse.
+        """
+        count = 0
+        for attempt in range(1, 4):
+            time.sleep(0.4 if attempt == 1 else 0.6)
+            count = self.numbered_buttons.show()
+            print(f"Botones: renumerado tras el clic, intento {attempt}, n={count}"
+                  + ("" if count else f", motivo={self.numbered_buttons.reason}"))
+            if count:
+                return
+        # la ventana cambió y ya no hay nada clicable: no dejar al usuario preso en el modo
+        self._buttons_exit()
+        self.notify("Sin botones en esta pantalla: volví al modo comando")
 
     def _handle_cell_click(self, match, text, normalized):
         try:
